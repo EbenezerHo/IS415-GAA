@@ -1,0 +1,84 @@
+---
+title: "In class Exercise 02"
+execute: 
+  warning: false # show warnings
+  eval: true # evaluate the code
+  echo: true # show the code
+date: "`r Sys.Date()`"
+---
+
+# Getting Started :D
+
+## Loading R packages
+
+arrow used for reading and writing parquet file. lubridate used for date and time
+
+```{r}
+pacman:: p_load (arrow, lubridate, tidyverse, tmap, sf)
+```
+
+## Reading the data
+
+```{r}
+#| eval: false
+df <- read_parquet("data/GrabPosisi/part-00000-8bbff892-97d2-4011-9961-703e38972569.c000.snappy.parquet")
+```
+
+## convert the data type of pingtimestamp from character to date-time
+
+```{r}
+#| eval: false
+
+df$pingtimestamp <- as_datetime(df$pingtimestamp)
+# df is to say that it is froma dataframe. then $pingtimestamp is the column name
+# reassign back data frame with the <-
+```
+
+## extracting trip starting locations
+
+### 1) extracting trips' origin location
+
+### 2) derive three new columns (i.e. variables) for weekday, starting hour and day of the month
+
+### 3) name the output tibble data.frame orgin_df
+
+```{r}
+#| eval: false
+origin_df <- df %>%  
+  group_by(trj_id) %>% # group by trip id
+  arrange(pingtimestamp) %>% # arrange by pingtimestamp to sort the data
+  filter(row_number() == 1) %>% # get the first row of all the trip id
+  mutate(weekday = wday(pingtimestamp, label = TRUE, abbr = TRUE), # get the day of the week
+         start_hr = factor(hour(pingtimestamp)),# use factor to get ordinal data
+         day= factor(day(pingtimestamp)))
+```
+
+## extracting trip ending locations
+
+```{r}
+#| eval: false
+destination_df <- df %>%  
+  group_by(trj_id) %>% # group by trip id
+  arrange(desc(pingtimestamp)) %>%  # arrange descending by pingtimestamp to sort the data
+  filter(row_number() == 1) %>% # get the last row of all the trip id
+  mutate(weekday = wday(pingtimestamp, label = TRUE, abbr = TRUE), # get the day of the week
+         end_hr = factor(hour(pingtimestamp)),# use factor to get ordinal data
+         day= factor(day(pingtimestamp)))
+```
+
+```{r}
+#| echo: false
+#| eval: false
+
+# save in r data file format. all object class will be saved native. 
+write_rds(origin_df, "data/rds/origin_df.rds")
+write_rds(destination_df, "data/rds/destination_df.rds")
+```
+
+### import the data from rds
+
+```{r}
+# if working on the next day, just run this read since the data is already prepped
+origin_df <- read_rds("data/rds/origin_df.rds") 
+destination_df <- read_rds("data/rds/destination_df.rds")
+```

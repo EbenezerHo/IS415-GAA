@@ -12,5 +12,47 @@
     "title": "About",
     "section": "",
     "text": "About this site\n\n1 + 1\n\n[1] 2"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex02/In-class_Ex02.html",
+    "href": "In-class_Ex/In-class_Ex02/In-class_Ex02.html",
+    "title": "In class Exercise 02",
+    "section": "",
+    "text": "arrow used for reading and writing parquet file. lubridate used for date and time\n\npacman:: p_load (arrow, lubridate, tidyverse, tmap, sf)\n\n\n\n\n\ndf &lt;- read_parquet(\"data/GrabPosisi/part-00000-8bbff892-97d2-4011-9961-703e38972569.c000.snappy.parquet\")\n\n\n\n\n\ndf$pingtimestamp &lt;- as_datetime(df$pingtimestamp)\n# df is to say that it is froma dataframe. then $pingtimestamp is the column name\n# reassign back data frame with the &lt;-\n\n\n\n\n\n\n\n\n\n\n\n\n\norigin_df &lt;- df %&gt;%  \n  group_by(trj_id) %&gt;% # group by trip id\n  arrange(pingtimestamp) %&gt;% # arrange by pingtimestamp to sort the data\n  filter(row_number() == 1) %&gt;% # get the first row of all the trip id\n  mutate(weekday = wday(pingtimestamp, label = TRUE, abbr = TRUE), # get the day of the week\n         start_hr = factor(hour(pingtimestamp)),# use factor to get ordinal data\n         day= factor(day(pingtimestamp)))\n\n\n\n\n\n\ndestination_df &lt;- df %&gt;%  \n  group_by(trj_id) %&gt;% # group by trip id\n  arrange(desc(pingtimestamp)) %&gt;%  # arrange descending by pingtimestamp to sort the data\n  filter(row_number() == 1) %&gt;% # get the last row of all the trip id\n  mutate(weekday = wday(pingtimestamp, label = TRUE, abbr = TRUE), # get the day of the week\n         end_hr = factor(hour(pingtimestamp)),# use factor to get ordinal data\n         day= factor(day(pingtimestamp)))\n\n\n\n\n# if working on the next day, just run this read since the data is already prepped\norigin_df &lt;- read_rds(\"data/rds/origin_df.rds\") \ndestination_df &lt;- read_rds(\"data/rds/destination_df.rds\")"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex02/In-class_Ex02.html#loading-r-packages",
+    "href": "In-class_Ex/In-class_Ex02/In-class_Ex02.html#loading-r-packages",
+    "title": "In class Exercise 02",
+    "section": "",
+    "text": "arrow used for reading and writing parquet file. lubridate used for date and time\n\npacman:: p_load (arrow, lubridate, tidyverse, tmap, sf)"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex02/In-class_Ex02.html#reading-the-data",
+    "href": "In-class_Ex/In-class_Ex02/In-class_Ex02.html#reading-the-data",
+    "title": "In class Exercise 02",
+    "section": "",
+    "text": "df &lt;- read_parquet(\"data/GrabPosisi/part-00000-8bbff892-97d2-4011-9961-703e38972569.c000.snappy.parquet\")"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex02/In-class_Ex02.html#convert-the-data-type-of-pingtimestamp-from-character-to-date-time",
+    "href": "In-class_Ex/In-class_Ex02/In-class_Ex02.html#convert-the-data-type-of-pingtimestamp-from-character-to-date-time",
+    "title": "In class Exercise 02",
+    "section": "",
+    "text": "df$pingtimestamp &lt;- as_datetime(df$pingtimestamp)\n# df is to say that it is froma dataframe. then $pingtimestamp is the column name\n# reassign back data frame with the &lt;-"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex02/In-class_Ex02.html#extracting-trip-starting-locations",
+    "href": "In-class_Ex/In-class_Ex02/In-class_Ex02.html#extracting-trip-starting-locations",
+    "title": "In class Exercise 02",
+    "section": "",
+    "text": "origin_df &lt;- df %&gt;%  \n  group_by(trj_id) %&gt;% # group by trip id\n  arrange(pingtimestamp) %&gt;% # arrange by pingtimestamp to sort the data\n  filter(row_number() == 1) %&gt;% # get the first row of all the trip id\n  mutate(weekday = wday(pingtimestamp, label = TRUE, abbr = TRUE), # get the day of the week\n         start_hr = factor(hour(pingtimestamp)),# use factor to get ordinal data\n         day= factor(day(pingtimestamp)))"
+  },
+  {
+    "objectID": "In-class_Ex/In-class_Ex02/In-class_Ex02.html#extracting-trip-ending-locations",
+    "href": "In-class_Ex/In-class_Ex02/In-class_Ex02.html#extracting-trip-ending-locations",
+    "title": "In class Exercise 02",
+    "section": "",
+    "text": "destination_df &lt;- df %&gt;%  \n  group_by(trj_id) %&gt;% # group by trip id\n  arrange(desc(pingtimestamp)) %&gt;%  # arrange descending by pingtimestamp to sort the data\n  filter(row_number() == 1) %&gt;% # get the last row of all the trip id\n  mutate(weekday = wday(pingtimestamp, label = TRUE, abbr = TRUE), # get the day of the week\n         end_hr = factor(hour(pingtimestamp)),# use factor to get ordinal data\n         day= factor(day(pingtimestamp)))\n\n\n\n\n# if working on the next day, just run this read since the data is already prepped\norigin_df &lt;- read_rds(\"data/rds/origin_df.rds\") \ndestination_df &lt;- read_rds(\"data/rds/destination_df.rds\")"
   }
 ]
