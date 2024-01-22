@@ -1,0 +1,82 @@
+---
+title: "In class Exercise 03"
+execute: 
+  warning: false # show warnings
+  eval: true # evaluate the code
+  echo: true # show the code
+date: "`r Sys.Date()`"
+---
+
+In class Exercise 3!
+
+# Getting started
+
+## installing and loading
+
+```{r}
+pacman::p_load(maptools, sf, raster, spatstat, tmap, tidyverse)
+```
+
+## import data 
+
+```{r}
+childcare_sf <- st_read("data/geospatial/ChildCareServices.geojson") %>% 
+  st_transform(crs = 3414)
+mpsz_sf <- st_read(dsn = "data/geospatial", 
+                layer = "MP14_SUBZONE_WEB_PL")
+```
+
+## creasting coastal outline 
+
+```{r}
+sg_sf <- mpsz_sf %>%
+  st_union()
+```
+
+```{r}
+plot(sg_sf)
+```
+hands on ex: spatial > sp data > ppp >
+
+now! use sf. take directly from sf object to transform to ppp.  
+
+```{r}
+childcare_ppp <- as.ppp(childcare_sf)
+```
+
+```{r}
+summary(childcare_ppp)
+```
+
+## remove duplicates 
+
+! especially important if using postal code
+
+```{r}
+any(duplicated(childcare_ppp))
+```
+```{r}
+sg_owin <- as.owin(sg_sf)
+```
+
+```{r}
+summary(sg_owin)
+```
+
+```{r}
+plot(sg_owin)
+```
+```{r}
+pg = mpsz_sf %>% filter(PLN_AREA_N == "PUNGGOL")
+tm = mpsz_sf %>% filter(PLN_AREA_N == "TAMPINES")
+ck = mpsz_sf %>% filter(PLN_AREA_N == "CHOA CHU KANG")
+jw = mpsz_sf %>% filter(PLN_AREA_N == "JURONG WEST")
+```
+
+```{r}
+par(mfrow=c(2,2))
+plot(pg, main = "Ponggol")
+plot(tm, main = "Tampines")
+plot(ck, main = "Choa Chu Kang")
+plot(jw, main = "Jurong West")
+```
