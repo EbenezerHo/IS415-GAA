@@ -1,5 +1,5 @@
 ---
-title: "In class Exercise 02"
+title: "Take home Exercise 01"
 execute: 
   warning: false # show warnings
   eval: true # evaluate the code
@@ -38,9 +38,9 @@ df <- read_parquet("data/GrabPosisi/part-00000-8bbff892-97d2-4011-9961-703e38972
 
 ```{r}
 #| eval: false
-mpsz_sf <- st_read(dsn = "data", 
-                layer = "MP14_SUBZONE_WEB_PL")
+mpsz_sf <- st_read("data/mpsz.kml")
 ```
+
 
 ## 4.3) Import Road data set from OpenStreetMap
 
@@ -56,7 +56,6 @@ roads_sf <- st_read(dsn = "data",
 
 ```{r}
 #| eval: false
-
 # the st_is_valid function checks whether a geometry is valid
 # which returns the indices of certain values based on logical conditions
 # length returns the length of data objects
@@ -68,16 +67,14 @@ length(which(st_is_valid(mpsz_sf) == FALSE))
 
 length(which(st_is_valid(roads_sf) == FALSE))
 ```
-There are 9 invalid geometries in mpsz_sf and 0 invalid geometry in roads_sf. 
+There are 6 invalid geometries in mpsz_sf and 0 invalid geometry in roads_sf. 
 
 ```{r}
 #| eval: false
-
 mpsz_sf <- st_make_valid(mpsz_sf)
 length(which(st_is_valid(mpsz_sf) == FALSE))
 ```
-
-## 5.2) convert mpsz_sf into 3414 
+## 5.2 convert mpsz_sf into 3414 
 
 ```{r}
 #| eval: false
@@ -87,17 +84,18 @@ st_crs(mpsz_sf)
 
 ```{r}
 #| eval: false
+mpsz_sf <- st_transform(mpsz_sf,3414)
 
-mpsz_sf_3414 <- st_transform(mpsz_sf,3414)
 ```
 
 ```{r}
 #| eval: false
 
-st_crs(mpsz_sf_3414)
+st_crs(mpsz_sf)
 ```
 
-## 5.3) convert roads_sf into 3414 
+
+## 5.2) convert roads_sf into 3414 
 
 ```{r}
 #| eval: false
@@ -125,14 +123,14 @@ roads_sf_3414 <- transform(roads_sf, crs = 3414)
 st_crs(roads_sf_3414)
 ```
 
-## 5.4) storing data in rds for future use 
+## 5.3) storing data in rds for future use 
 Also because my laptop is terrible
 
 ```{r}
 #| eval: false
 
-write_rds(mpsz_sf_3414, "data/rds/mpsz_sf_3414.rds")
-write_rds(roads_sf_3414, "data/rds/roads_sf_3414.rds")
+write_rds(mpsz_sf, "data/rds/mpsz.rds")
+write_rds(roads_sf_3414, "data/rds/roads_sf.rds")
 ```
 
 ## 5.5) Data preparation for GrabPosisi data
@@ -187,9 +185,34 @@ write_rds(destination_df, "data/rds/destination_df.rds")
 ```{r}
 origin_df <- read_rds("data/rds/origin_df.rds")
 destination_df <- read_rds("data/rds/destination_df.rds")
-mpsz_sf_3414 <- read_rds("data/rds/mpsz_sf_3414.rds")
-roads_sf_3414 <- read_rds("data/rds/roads_sf_3414.rds")
+mpsz <- read_rds("data/rds/mpsz.rds")
+roads <- read_rds("data/rds/roads_sf.rds")
 ```
+
+```{r}
+BS <- st_read(dsn = "data/BusStopLocation", 
+                layer = "BusStop")
+```
+```{r}
+bus_stop <- BS['BUS_ROOF_N']
+```
+
+```{r}
+bus_stop <- st_transform(bus_stop,3414)
+```
+
+```{r}
+st_crs(bus_stop)
+```
+```{r}
+tm_shape(mpsz)+
+  tm_polygons()+
+  tm_shape(bus_stop)+
+  tm_dots(alpha=0.4, size = 0.05, col = "red")
+```
+
+
+
 
 
 

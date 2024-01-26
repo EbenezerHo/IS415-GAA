@@ -555,85 +555,85 @@
   {
     "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html",
     "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html",
-    "title": "In class Exercise 02",
+    "title": "Take home Exercise 01",
     "section": "",
-    "text": "Human mobility, the movement of human beings in space and time, reflects the spatial-temporal characteristics of human behavior. With the advancement Information and Communication Technologies (ICT) especially smart phone, a large volume of data related to human mobility have been collected. By using appropriate GIS analysis methods, these data are potentially useful in supporting smart city planning and management.\nIn Singapore, one of the important source of data related to human mobility is from Land Transport Authority (LTA) DataMall. Two data sets related to human mobility are provided by the portal, they are: Passenger Volume by Origin Destination Train Stations and Passenger Volume by Origin Destination Bus Stops. One of the limitation of these data sets is that their location are biased to either bus stops or MRT/LRT stations. In 2020, another very interesting human mobility data set called Grab Posisi was released by GRAB, one of the largest shared taxi operator in South-east Asia. There are two data sets been released and one of them is for Singapore.\n\n\n\n\n\n\n\npacman:: p_load (arrow, lubridate, tidyverse, tmap, sf, raster, spatstat, tmap,maptools)\n\n\n\n\n\n\n\n\ndf &lt;- read_parquet(\"data/GrabPosisi/part-00000-8bbff892-97d2-4011-9961-703e38972569.c000.snappy.parquet\")\n\n\n\n\n\nmpsz_sf &lt;- st_read(dsn = \"data\", \n                layer = \"MP14_SUBZONE_WEB_PL\")\n\n\n\n\n\nroads_sf &lt;- st_read(dsn = \"data\", \n                layer = \"gis_osm_roads_free_1\")\n\n\n\n\n\n\n\n\n# the st_is_valid function checks whether a geometry is valid\n# which returns the indices of certain values based on logical conditions\n# length returns the length of data objects\nlength(which(st_is_valid(mpsz_sf) == FALSE))\n\n\nlength(which(st_is_valid(roads_sf) == FALSE))\n\nThere are 9 invalid geometries in mpsz_sf and 0 invalid geometry in roads_sf.\n\nmpsz_sf &lt;- st_make_valid(mpsz_sf)\nlength(which(st_is_valid(mpsz_sf) == FALSE))\n\n\n\n\n\nst_crs(mpsz_sf)\n\n\nmpsz_sf_3414 &lt;- st_transform(mpsz_sf,3414)\n\n\nst_crs(mpsz_sf_3414)\n\n\n\n\n\nst_crs(roads_sf)\n\n\nroads_sf_3414 &lt;- st_transform(roads_sf,3414)\n\n\nroads_sf_3414 &lt;- transform(roads_sf, crs = 3414)\n\n\nst_crs(roads_sf_3414)\n\n\n\n\nAlso because my laptop is terrible\n\nwrite_rds(mpsz_sf_3414, \"data/rds/mpsz_sf_3414.rds\")\nwrite_rds(roads_sf_3414, \"data/rds/roads_sf_3414.rds\")\n\n\n\n\n\n\n\ndf$pingtimestamp &lt;- as_datetime(df$pingtimestamp)\n\n\n\n\n\norigin_df &lt;- df %&gt;%  \n  group_by(trj_id) %&gt;% # group by trip id\n  arrange(pingtimestamp) %&gt;% # arrange by pingtimestamp to sort the data\n  filter(row_number() == 1) %&gt;% # get the first row of all the trip id\n  mutate(weekday = wday(pingtimestamp, label = TRUE, abbr = TRUE), # get the day of the week\n         start_hr = factor(hour(pingtimestamp)),# use factor to get ordinal data\n         day= factor(day(pingtimestamp)))\n\n\n\n\n\ndestination_df &lt;- df %&gt;%  \n  group_by(trj_id) %&gt;% # group by trip id\n  arrange(desc(pingtimestamp)) %&gt;%  # arrange descending by pingtimestamp to sort the data\n  filter(row_number() == 1) %&gt;% # get the last row of all the trip id\n  mutate(weekday = wday(pingtimestamp, label = TRUE, abbr = TRUE), # get the day of the week\n         end_hr = factor(hour(pingtimestamp)),# use factor to get ordinal data\n         day= factor(day(pingtimestamp)))\n\n\n\n\n\nwrite_rds(origin_df, \"data/rds/origin_df.rds\")\nwrite_rds(destination_df, \"data/rds/destination_df.rds\")\n\n\n\n\n\n\norigin_df &lt;- read_rds(\"data/rds/origin_df.rds\")\ndestination_df &lt;- read_rds(\"data/rds/destination_df.rds\")\nmpsz_sf_3414 &lt;- read_rds(\"data/rds/mpsz_sf_3414.rds\")\nroads_sf_3414 &lt;- read_rds(\"data/rds/roads_sf_3414.rds\")"
+    "text": "Human mobility, the movement of human beings in space and time, reflects the spatial-temporal characteristics of human behavior. With the advancement Information and Communication Technologies (ICT) especially smart phone, a large volume of data related to human mobility have been collected. By using appropriate GIS analysis methods, these data are potentially useful in supporting smart city planning and management.\nIn Singapore, one of the important source of data related to human mobility is from Land Transport Authority (LTA) DataMall. Two data sets related to human mobility are provided by the portal, they are: Passenger Volume by Origin Destination Train Stations and Passenger Volume by Origin Destination Bus Stops. One of the limitation of these data sets is that their location are biased to either bus stops or MRT/LRT stations. In 2020, another very interesting human mobility data set called Grab Posisi was released by GRAB, one of the largest shared taxi operator in South-east Asia. There are two data sets been released and one of them is for Singapore.\n\n\n\n\n\n\n\npacman:: p_load (arrow, lubridate, tidyverse, tmap, sf, raster, spatstat, tmap,maptools)\n\n\n\n\n\n\n\n\ndf &lt;- read_parquet(\"data/GrabPosisi/part-00000-8bbff892-97d2-4011-9961-703e38972569.c000.snappy.parquet\")\n\n\n\n\n\nmpsz_sf &lt;- st_read(\"data/mpsz.kml\")\n\n\n\n\n\nroads_sf &lt;- st_read(dsn = \"data\", \n                layer = \"gis_osm_roads_free_1\")\n\n\n\n\n\n\n\n\n# the st_is_valid function checks whether a geometry is valid\n# which returns the indices of certain values based on logical conditions\n# length returns the length of data objects\nlength(which(st_is_valid(mpsz_sf) == FALSE))\n\n\nlength(which(st_is_valid(roads_sf) == FALSE))\n\nThere are 6 invalid geometries in mpsz_sf and 0 invalid geometry in roads_sf.\n\nmpsz_sf &lt;- st_make_valid(mpsz_sf)\nlength(which(st_is_valid(mpsz_sf) == FALSE))\n\n\n\n\n\nst_crs(mpsz_sf)\n\n\nmpsz_sf &lt;- st_transform(mpsz_sf,3414)\n\n\nst_crs(mpsz_sf)\n\n\n\n\n\nst_crs(roads_sf)\n\n\nroads_sf_3414 &lt;- st_transform(roads_sf,3414)\n\n\nroads_sf_3414 &lt;- transform(roads_sf, crs = 3414)\n\n\nst_crs(roads_sf_3414)\n\n\n\n\nAlso because my laptop is terrible\n\nwrite_rds(mpsz_sf, \"data/rds/mpsz.rds\")\nwrite_rds(roads_sf_3414, \"data/rds/roads_sf.rds\")\n\n\n\n\n\n\n\ndf$pingtimestamp &lt;- as_datetime(df$pingtimestamp)\n\n\n\n\n\norigin_df &lt;- df %&gt;%  \n  group_by(trj_id) %&gt;% # group by trip id\n  arrange(pingtimestamp) %&gt;% # arrange by pingtimestamp to sort the data\n  filter(row_number() == 1) %&gt;% # get the first row of all the trip id\n  mutate(weekday = wday(pingtimestamp, label = TRUE, abbr = TRUE), # get the day of the week\n         start_hr = factor(hour(pingtimestamp)),# use factor to get ordinal data\n         day= factor(day(pingtimestamp)))\n\n\n\n\n\ndestination_df &lt;- df %&gt;%  \n  group_by(trj_id) %&gt;% # group by trip id\n  arrange(desc(pingtimestamp)) %&gt;%  # arrange descending by pingtimestamp to sort the data\n  filter(row_number() == 1) %&gt;% # get the last row of all the trip id\n  mutate(weekday = wday(pingtimestamp, label = TRUE, abbr = TRUE), # get the day of the week\n         end_hr = factor(hour(pingtimestamp)),# use factor to get ordinal data\n         day= factor(day(pingtimestamp)))\n\n\n\n\n\nwrite_rds(origin_df, \"data/rds/origin_df.rds\")\nwrite_rds(destination_df, \"data/rds/destination_df.rds\")\n\n\n\n\n\n\norigin_df &lt;- read_rds(\"data/rds/origin_df.rds\")\ndestination_df &lt;- read_rds(\"data/rds/destination_df.rds\")\nmpsz &lt;- read_rds(\"data/rds/mpsz.rds\")\nroads &lt;- read_rds(\"data/rds/roads_sf.rds\")\n\n\nBS &lt;- st_read(dsn = \"data/BusStopLocation\", \n                layer = \"BusStop\")\n\nReading layer `BusStop' from data source \n  `C:\\EbenezerHo\\IS415-GAA\\Take-home_Ex\\Take-home_Ex01\\data\\BusStopLocation' \n  using driver `ESRI Shapefile'\nSimple feature collection with 5161 features and 3 fields\nGeometry type: POINT\nDimension:     XY\nBounding box:  xmin: 3970.122 ymin: 26482.1 xmax: 48284.56 ymax: 52983.82\nProjected CRS: SVY21\n\n\n\nbus_stop &lt;- BS['BUS_ROOF_N']\n\n\nbus_stop &lt;- st_transform(bus_stop,3414)\n\n\nst_crs(bus_stop)\n\nCoordinate Reference System:\n  User input: EPSG:3414 \n  wkt:\nPROJCRS[\"SVY21 / Singapore TM\",\n    BASEGEOGCRS[\"SVY21\",\n        DATUM[\"SVY21\",\n            ELLIPSOID[\"WGS 84\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n        ID[\"EPSG\",4757]],\n    CONVERSION[\"Singapore Transverse Mercator\",\n        METHOD[\"Transverse Mercator\",\n            ID[\"EPSG\",9807]],\n        PARAMETER[\"Latitude of natural origin\",1.36666666666667,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8801]],\n        PARAMETER[\"Longitude of natural origin\",103.833333333333,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8802]],\n        PARAMETER[\"Scale factor at natural origin\",1,\n            SCALEUNIT[\"unity\",1],\n            ID[\"EPSG\",8805]],\n        PARAMETER[\"False easting\",28001.642,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8806]],\n        PARAMETER[\"False northing\",38744.572,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8807]]],\n    CS[Cartesian,2],\n        AXIS[\"northing (N)\",north,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1]],\n        AXIS[\"easting (E)\",east,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1]],\n    USAGE[\n        SCOPE[\"Cadastre, engineering survey, topographic mapping.\"],\n        AREA[\"Singapore - onshore and offshore.\"],\n        BBOX[1.13,103.59,1.47,104.07]],\n    ID[\"EPSG\",3414]]\n\n\n\ntm_shape(mpsz)+\n  tm_polygons()+\n  tm_shape(bus_stop)+\n  tm_dots(alpha=0.4, size = 0.05, col = \"red\")"
   },
   {
     "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#introduction",
     "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#introduction",
-    "title": "In class Exercise 02",
+    "title": "Take home Exercise 01",
     "section": "",
     "text": "Human mobility, the movement of human beings in space and time, reflects the spatial-temporal characteristics of human behavior. With the advancement Information and Communication Technologies (ICT) especially smart phone, a large volume of data related to human mobility have been collected. By using appropriate GIS analysis methods, these data are potentially useful in supporting smart city planning and management.\nIn Singapore, one of the important source of data related to human mobility is from Land Transport Authority (LTA) DataMall. Two data sets related to human mobility are provided by the portal, they are: Passenger Volume by Origin Destination Train Stations and Passenger Volume by Origin Destination Bus Stops. One of the limitation of these data sets is that their location are biased to either bus stops or MRT/LRT stations. In 2020, another very interesting human mobility data set called Grab Posisi was released by GRAB, one of the largest shared taxi operator in South-east Asia. There are two data sets been released and one of them is for Singapore."
   },
   {
     "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#install-and-load-packages",
     "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#install-and-load-packages",
-    "title": "In class Exercise 02",
+    "title": "Take home Exercise 01",
     "section": "",
     "text": "pacman:: p_load (arrow, lubridate, tidyverse, tmap, sf, raster, spatstat, tmap,maptools)"
   },
   {
     "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#import-grab-posisi-data",
     "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#import-grab-posisi-data",
-    "title": "In class Exercise 02",
+    "title": "Take home Exercise 01",
     "section": "",
     "text": "df &lt;- read_parquet(\"data/GrabPosisi/part-00000-8bbff892-97d2-4011-9961-703e38972569.c000.snappy.parquet\")"
   },
   {
     "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#import-singapore-master-plan-2019-subzone-boundary-no-sea-data",
     "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#import-singapore-master-plan-2019-subzone-boundary-no-sea-data",
-    "title": "In class Exercise 02",
+    "title": "Take home Exercise 01",
     "section": "",
-    "text": "mpsz_sf &lt;- st_read(dsn = \"data\", \n                layer = \"MP14_SUBZONE_WEB_PL\")"
+    "text": "mpsz_sf &lt;- st_read(\"data/mpsz.kml\")"
   },
   {
     "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#import-road-data-set-from-openstreetmap",
     "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#import-road-data-set-from-openstreetmap",
-    "title": "In class Exercise 02",
+    "title": "Take home Exercise 01",
     "section": "",
     "text": "roads_sf &lt;- st_read(dsn = \"data\", \n                layer = \"gis_osm_roads_free_1\")"
   },
   {
     "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#handle-invalid-data",
     "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#handle-invalid-data",
-    "title": "In class Exercise 02",
+    "title": "Take home Exercise 01",
     "section": "",
-    "text": "# the st_is_valid function checks whether a geometry is valid\n# which returns the indices of certain values based on logical conditions\n# length returns the length of data objects\nlength(which(st_is_valid(mpsz_sf) == FALSE))\n\n\nlength(which(st_is_valid(roads_sf) == FALSE))\n\nThere are 9 invalid geometries in mpsz_sf and 0 invalid geometry in roads_sf.\n\nmpsz_sf &lt;- st_make_valid(mpsz_sf)\nlength(which(st_is_valid(mpsz_sf) == FALSE))"
+    "text": "# the st_is_valid function checks whether a geometry is valid\n# which returns the indices of certain values based on logical conditions\n# length returns the length of data objects\nlength(which(st_is_valid(mpsz_sf) == FALSE))\n\n\nlength(which(st_is_valid(roads_sf) == FALSE))\n\nThere are 6 invalid geometries in mpsz_sf and 0 invalid geometry in roads_sf.\n\nmpsz_sf &lt;- st_make_valid(mpsz_sf)\nlength(which(st_is_valid(mpsz_sf) == FALSE))"
   },
   {
     "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#convert-mpsz_sf-into-3414",
     "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#convert-mpsz_sf-into-3414",
-    "title": "In class Exercise 02",
+    "title": "Take home Exercise 01",
     "section": "",
-    "text": "st_crs(mpsz_sf)\n\n\nmpsz_sf_3414 &lt;- st_transform(mpsz_sf,3414)\n\n\nst_crs(mpsz_sf_3414)"
+    "text": "st_crs(mpsz_sf)\n\n\nmpsz_sf &lt;- st_transform(mpsz_sf,3414)\n\n\nst_crs(mpsz_sf)"
   },
   {
     "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#convert-roads_sf-into-3414",
     "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#convert-roads_sf-into-3414",
-    "title": "In class Exercise 02",
+    "title": "Take home Exercise 01",
     "section": "",
     "text": "st_crs(roads_sf)\n\n\nroads_sf_3414 &lt;- st_transform(roads_sf,3414)\n\n\nroads_sf_3414 &lt;- transform(roads_sf, crs = 3414)\n\n\nst_crs(roads_sf_3414)"
   },
   {
     "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#storing-data-in-rds-for-future-use",
     "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#storing-data-in-rds-for-future-use",
-    "title": "In class Exercise 02",
+    "title": "Take home Exercise 01",
     "section": "",
-    "text": "Also because my laptop is terrible\n\nwrite_rds(mpsz_sf_3414, \"data/rds/mpsz_sf_3414.rds\")\nwrite_rds(roads_sf_3414, \"data/rds/roads_sf_3414.rds\")"
+    "text": "Also because my laptop is terrible\n\nwrite_rds(mpsz_sf, \"data/rds/mpsz.rds\")\nwrite_rds(roads_sf_3414, \"data/rds/roads_sf.rds\")"
   },
   {
     "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#data-preparation-for-grabposisi-data",
     "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#data-preparation-for-grabposisi-data",
-    "title": "In class Exercise 02",
+    "title": "Take home Exercise 01",
     "section": "",
     "text": "df$pingtimestamp &lt;- as_datetime(df$pingtimestamp)\n\n\n\n\n\norigin_df &lt;- df %&gt;%  \n  group_by(trj_id) %&gt;% # group by trip id\n  arrange(pingtimestamp) %&gt;% # arrange by pingtimestamp to sort the data\n  filter(row_number() == 1) %&gt;% # get the first row of all the trip id\n  mutate(weekday = wday(pingtimestamp, label = TRUE, abbr = TRUE), # get the day of the week\n         start_hr = factor(hour(pingtimestamp)),# use factor to get ordinal data\n         day= factor(day(pingtimestamp)))\n\n\n\n\n\ndestination_df &lt;- df %&gt;%  \n  group_by(trj_id) %&gt;% # group by trip id\n  arrange(desc(pingtimestamp)) %&gt;%  # arrange descending by pingtimestamp to sort the data\n  filter(row_number() == 1) %&gt;% # get the last row of all the trip id\n  mutate(weekday = wday(pingtimestamp, label = TRUE, abbr = TRUE), # get the day of the week\n         end_hr = factor(hour(pingtimestamp)),# use factor to get ordinal data\n         day= factor(day(pingtimestamp)))\n\n\n\n\n\nwrite_rds(origin_df, \"data/rds/origin_df.rds\")\nwrite_rds(destination_df, \"data/rds/destination_df.rds\")"
   },
   {
     "objectID": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#load-data-from-rds",
     "href": "Take-home_Ex/Take-home_Ex01/Take-home_Ex01.html#load-data-from-rds",
-    "title": "In class Exercise 02",
+    "title": "Take home Exercise 01",
     "section": "",
-    "text": "origin_df &lt;- read_rds(\"data/rds/origin_df.rds\")\ndestination_df &lt;- read_rds(\"data/rds/destination_df.rds\")\nmpsz_sf_3414 &lt;- read_rds(\"data/rds/mpsz_sf_3414.rds\")\nroads_sf_3414 &lt;- read_rds(\"data/rds/roads_sf_3414.rds\")"
+    "text": "origin_df &lt;- read_rds(\"data/rds/origin_df.rds\")\ndestination_df &lt;- read_rds(\"data/rds/destination_df.rds\")\nmpsz &lt;- read_rds(\"data/rds/mpsz.rds\")\nroads &lt;- read_rds(\"data/rds/roads_sf.rds\")\n\n\nBS &lt;- st_read(dsn = \"data/BusStopLocation\", \n                layer = \"BusStop\")\n\nReading layer `BusStop' from data source \n  `C:\\EbenezerHo\\IS415-GAA\\Take-home_Ex\\Take-home_Ex01\\data\\BusStopLocation' \n  using driver `ESRI Shapefile'\nSimple feature collection with 5161 features and 3 fields\nGeometry type: POINT\nDimension:     XY\nBounding box:  xmin: 3970.122 ymin: 26482.1 xmax: 48284.56 ymax: 52983.82\nProjected CRS: SVY21\n\n\n\nbus_stop &lt;- BS['BUS_ROOF_N']\n\n\nbus_stop &lt;- st_transform(bus_stop,3414)\n\n\nst_crs(bus_stop)\n\nCoordinate Reference System:\n  User input: EPSG:3414 \n  wkt:\nPROJCRS[\"SVY21 / Singapore TM\",\n    BASEGEOGCRS[\"SVY21\",\n        DATUM[\"SVY21\",\n            ELLIPSOID[\"WGS 84\",6378137,298.257223563,\n                LENGTHUNIT[\"metre\",1]]],\n        PRIMEM[\"Greenwich\",0,\n            ANGLEUNIT[\"degree\",0.0174532925199433]],\n        ID[\"EPSG\",4757]],\n    CONVERSION[\"Singapore Transverse Mercator\",\n        METHOD[\"Transverse Mercator\",\n            ID[\"EPSG\",9807]],\n        PARAMETER[\"Latitude of natural origin\",1.36666666666667,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8801]],\n        PARAMETER[\"Longitude of natural origin\",103.833333333333,\n            ANGLEUNIT[\"degree\",0.0174532925199433],\n            ID[\"EPSG\",8802]],\n        PARAMETER[\"Scale factor at natural origin\",1,\n            SCALEUNIT[\"unity\",1],\n            ID[\"EPSG\",8805]],\n        PARAMETER[\"False easting\",28001.642,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8806]],\n        PARAMETER[\"False northing\",38744.572,\n            LENGTHUNIT[\"metre\",1],\n            ID[\"EPSG\",8807]]],\n    CS[Cartesian,2],\n        AXIS[\"northing (N)\",north,\n            ORDER[1],\n            LENGTHUNIT[\"metre\",1]],\n        AXIS[\"easting (E)\",east,\n            ORDER[2],\n            LENGTHUNIT[\"metre\",1]],\n    USAGE[\n        SCOPE[\"Cadastre, engineering survey, topographic mapping.\"],\n        AREA[\"Singapore - onshore and offshore.\"],\n        BBOX[1.13,103.59,1.47,104.07]],\n    ID[\"EPSG\",3414]]\n\n\n\ntm_shape(mpsz)+\n  tm_polygons()+\n  tm_shape(bus_stop)+\n  tm_dots(alpha=0.4, size = 0.05, col = \"red\")"
   }
 ]
