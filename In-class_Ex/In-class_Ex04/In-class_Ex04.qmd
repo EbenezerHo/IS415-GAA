@@ -1,0 +1,48 @@
+---
+title: "In class Exercise 04"
+execute: 
+  warning: false # show warnings
+  eval: true # evaluate the code
+  echo: true # show the code
+date: "`r Sys.Date()`"
+---
+
+# getting started
+
+```{r}
+pacman::p_load(sf, spdep, tmap, tidyverse, knitr, GWmodel)
+
+```
+```{r}
+hunan <- st_read(dsn = "data/geospatial", 
+                 layer = "Hunan")
+```
+
+```{r}
+hunan2012 <- read_csv("data/aspatial/Hunan_2012.csv")
+```
+```{r}
+hunan <- left_join(hunan,hunan2012)%>% select(1:4, 7, 15)
+```
+```{r}
+# GWmodel cannot accept sf. need to be in spatialdf or polygon df format. sp object class
+hunan_sp <- hunan %>% as_Spatial()
+```
+
+```{r}
+gwstat <- gwss(data = hunan_sp, 
+               vars = "GDPPC",
+               bw = 6,
+               kernel = "bisquare",
+               adaptive = TRUE,
+               longlat = T)
+# adaptive means fixed numbers of neighbours.
+# since adaptive is true, need to declare bw = 6 (number of neighbours)
+# if adaptive is false, bw = 6 means 6km (di)
+```
+
+
+
+
+
+
