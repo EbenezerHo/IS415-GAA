@@ -7,7 +7,7 @@ execute:
 date: "`r Sys.Date()`"
 ---
 
-# Take home Exercise 1 
+# Take home Exercise 1
 
 ## Application of Spatial Point Patterns Analysis to discover the geographical distribution of Grab hailing services in Singapore
 
@@ -17,15 +17,15 @@ Human mobility, the movement of human beings in space and time, reflects the spa
 
 In Singapore, one of the important source of data related to human mobility is from Land Transport Authority (LTA) DataMall. Two data sets related to human mobility are provided by the portal, they are: Passenger Volume by Origin Destination Train Stations and Passenger Volume by Origin Destination Bus Stops. One of the limitation of these data sets is that their location are biased to either bus stops or MRT/LRT stations. In 2020, another very interesting human mobility data set called Grab Posisi was released by GRAB, one of the largest shared taxi operator in South-east Asia. There are two data sets been released and one of them is for Singapore.
 
-## 2) Data 
+## 2) Data
 
-## 3) Install and load packages 
+## 3) Install and load packages
 
 ```{r}
 pacman:: p_load (arrow, lubridate, tidyverse, tmap, sf, raster, spatstat, tmap,maptools)
 ```
 
-## 4) Import data 
+## 4) Import data
 
 ## 4.1) Import Grab Posisi data
 
@@ -37,10 +37,9 @@ df <- read_parquet("data/GrabPosisi/part-00000-8bbff892-97d2-4011-9961-703e38972
 ## 4.2) Import Singapore Master Plan 2019 Subzone Boundary (No Sea) data
 
 ```{r}
-#| eval: false
-mpsz_sf <- st_read("data/mpsz.kml")
+mpsz_sf <- st_read(dsn = "data", 
+                layer = "MPSZ-2019")
 ```
-
 
 ## 4.3) Import Road data set from OpenStreetMap
 
@@ -52,7 +51,7 @@ roads_sf <- st_read(dsn = "data",
 
 ## 5) Data preparation
 
-## 5.1 Handle invalid data 
+## 5.1 Handle invalid data
 
 ```{r}
 #| eval: false
@@ -67,14 +66,16 @@ length(which(st_is_valid(mpsz_sf) == FALSE))
 
 length(which(st_is_valid(roads_sf) == FALSE))
 ```
-There are 6 invalid geometries in mpsz_sf and 0 invalid geometry in roads_sf. 
+
+There are 6 invalid geometries in mpsz_sf and 0 invalid geometry in roads_sf.
 
 ```{r}
 #| eval: false
 mpsz_sf <- st_make_valid(mpsz_sf)
 length(which(st_is_valid(mpsz_sf) == FALSE))
 ```
-## 5.2 convert mpsz_sf into 3414 
+
+## 5.2 convert mpsz_sf into 3414
 
 ```{r}
 #| eval: false
@@ -94,8 +95,7 @@ mpsz_sf <- st_transform(mpsz_sf,3414)
 st_crs(mpsz_sf)
 ```
 
-
-## 5.2) convert roads_sf into 3414 
+## 5.2) convert roads_sf into 3414
 
 ```{r}
 #| eval: false
@@ -108,7 +108,6 @@ st_crs(roads_sf)
 
 roads_sf_3414 <- st_transform(roads_sf,3414)
 ```
-
 
 ```{r}
 #| eval: false
@@ -123,7 +122,8 @@ roads_sf_3414 <- transform(roads_sf, crs = 3414)
 st_crs(roads_sf_3414)
 ```
 
-## 5.3) storing data in rds for future use 
+## 5.3) storing data in rds for future use
+
 Also because my laptop is terrible
 
 ```{r}
@@ -143,7 +143,6 @@ df$pingtimestamp <- as_datetime(df$pingtimestamp)
 ```
 
 ### 5.5.2) extracting trip starting locations
-
 
 ```{r}
 #| eval: false
@@ -171,7 +170,7 @@ destination_df <- df %>%
          day= factor(day(pingtimestamp)))
 ```
 
-### 5.5.4) storing GrabPosisi data for future use 
+### 5.5.4) storing GrabPosisi data for future use
 
 ```{r}
 #| eval: false
@@ -187,12 +186,14 @@ origin_df <- read_rds("data/rds/origin_df.rds")
 destination_df <- read_rds("data/rds/destination_df.rds")
 mpsz <- read_rds("data/rds/mpsz.rds")
 roads <- read_rds("data/rds/roads_sf.rds")
+bus_stop <- read_rds("data/rds/bus_stop.rds")
 ```
 
 ```{r}
 BS <- st_read(dsn = "data/BusStopLocation", 
                 layer = "BusStop")
 ```
+
 ```{r}
 bus_stop <- BS['BUS_ROOF_N']
 ```
@@ -204,12 +205,170 @@ bus_stop <- st_transform(bus_stop,3414)
 ```{r}
 st_crs(bus_stop)
 ```
+
 ```{r}
+write_rds(bus_stop, "data/rds/bus_stop.rds")
+
+```
+
+
+filter roads
+```{r}
+f_road <- filter(roads, maxspeed > 0)
+```
+
+
+```{r}
+# tm_shape(mpsz$geometry)+
+#  tm_polygons()+
+#  tm_shape(origin_sf)+
+#  tm_dots()
+```
+convert aspatial to geospatial 
+```{r}
+origin_sf <- st_as_sf(origin_df,
+                      coords = c("rawlng", "rawlat"),
+                      crs = 4326) %>%
+  st_transform(crs = 3414)
+```
+
+
+```{r}
+# tm_shape(mpsz)+
+#  tm_polygons()+
+#  tm_shape(f_road)+
+#  tm_lines(size=0.2, col="red")
+#  tm_shape(origin_df)+
+#  tm_dots(alpha=0.4, size = 0.05, col = "blue")
+```
+
+
+we plot the origin of grab trips to singapore map to determine the distribution of grab trips in singapore
+```{r}
+tmap_mode("view")
 tm_shape(mpsz)+
   tm_polygons()+
-  tm_shape(bus_stop)+
-  tm_dots(alpha=0.4, size = 0.05, col = "red")
+  tm_text("PLN_AREA_N", size=0.5)+
+  tm_shape(origin_sf)+
+  tm_dots(alpha=0.4, size = 0.05, col = "blue")
 ```
+
+```{r}
+sg_sf <- mpsz %>%
+  st_union()
+```
+
+```{r}
+plot(sg_sf)
+```
+
+lets prep for KDE 
+
+convert sf to sp cos some packages limited to sp 
+```{r}
+sg <- as(sg_sf, "Spatial")
+mpsz_spc <- as(mpsz, "Spatial")
+orgin <- as(origin_sf, "Spatial")
+```
+
+converting spatial class into generic spatial objects  
+
+```{r}
+origin_sp <- as(origin_sf, "Spatial")
+sg_sp <- as(sg, "SpatialPolygons")
+```
+
+converting generic sp format into spatstat ppp format 
+
+```{r}
+origin_ppp <- as(origin_sp["pingtimestamp"], "ppp")
+origin_ppp
+```
+
+convert origin_sf to spatial object
+
+```{r}
+plot(origin_ppp)
+```
+
+```{r}
+any(duplicated(origin_ppp))
+
+```
+
+```{r}
+tmap_mode('view')
+tm_shape(origin_sf) +
+  tm_dots(alpha=0.4, 
+          size=0.05)
+```
+
+```{r}
+sg_owin <- as(sg_sp, "owin")
+
+```
+
+```{r}
+plot(sg_owin)
+
+```
+
+```{r}
+originSG_ppp = origin_ppp[sg_owin]
+```
+
+```{r}
+# plot origin without legend 
+plot(originSG_ppp, legend = FALSE)
+```
+
+kde 
+
+```{r}
+kde_originSG_bw <- density(originSG_ppp,
+                              sigma=bw.diggle,
+                              edge=TRUE,
+                            kernel="gaussian") 
+```
+
+```{r}
+plot(kde_originSG_bw)
+```
+rescale 
+
+```{r}
+kde_originSG_bw_rescale <- rescale(kde_originSG_bw, 1000, "km")
+```
+
+```{r}
+bw <- bw.diggle(originSG_ppp)
+bw
+```
+
+
+replot
+```{r}
+# kde_originSG_bw_rescale <- density(kde_originSG_bw_rescale,
+#                              sigma=bw,
+#                              edge=TRUE,
+#                            kernel="gaussian") 
+# plot(kde_originSG_bw_rescale)
+```
+
+```{r}
+```
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
