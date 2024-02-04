@@ -17,12 +17,32 @@ Human mobility, the movement of human beings in space and time, reflects the spa
 
 In Singapore, one of the important source of data related to human mobility is from Land Transport Authority (LTA) DataMall. Two data sets related to human mobility are provided by the portal, they are: Passenger Volume by Origin Destination Train Stations and Passenger Volume by Origin Destination Bus Stops. One of the limitation of these data sets is that their location are biased to either bus stops or MRT/LRT stations. In 2020, another very interesting human mobility data set called Grab Posisi was released by GRAB, one of the largest shared taxi operator in South-east Asia. There are two data sets been released and one of them is for Singapore.
 
-## 2) Data
+The Task
+
+-   Using appropriate function of sf and tidyverse, preparing the following geospatial data layer in sf tibble data.frames:
+
+    -   Grab taxi location points either by origins or destinations.![](images/clipboard-420052342.png){width="20"}
+
+    -   Road layer within Singapore excluding outer islands. ![](images/clipboard-420052342.png){width="20"}
+
+    -   Singapore boundary layer excluding outer islands ![](images/clipboard-420052342.png){width="20"}
+
+-   Using the extracted data, derive traditional Kernel Density Estimation layers. ![](images/clipboard-420052342.png){width="20"}
+
+-   Using the extracted data, derive either Network Kernel Density Estimation (NKDE) or Temporal Network Kernel Density Estimation (TNKDE) ![](images/clipboard-420052342.png){width="20"}
+
+-   Using appropriate tmap functions, display the kernel density layers on openstreetmap of Singapore.
+
+-   Describe the spatial patterns revealed by the kernel density maps.
+
+## 2) Setup
+
+### 2.1) Datasets used
 
 ## 3) Install and load packages
 
 ```{r}
-pacman:: p_load (arrow, lubridate, tidyverse, tmap, sf, raster, spatstat, tmap,maptools)
+pacman:: p_load (arrow, lubridate, tidyverse, tmap, sf, raster, spatstat, tmap, maptools, sp, spNetwork)
 ```
 
 ## 4) Import data
@@ -34,48 +54,79 @@ pacman:: p_load (arrow, lubridate, tidyverse, tmap, sf, raster, spatstat, tmap,m
 df <- read_parquet("data/GrabPosisi/part-00000-8bbff892-97d2-4011-9961-703e38972569.c000.snappy.parquet")
 ```
 
+### 4.1.1 Extracting the origin and destination data from Grab Posisi
+
+### 4.1.2) conver the data type of pingtimestamp from character to date-time
+
+Since the values seems to derive from a timestamp, we will convert the data type of pingtimestamp from character to date. This will allow us to process the data in a more efficient manner with the correct data type. We will use the as_datetime function from the lubridate package to do this.
+
+```{r}
+#| eval: false
+df$pingtimestamp <- as_datetime(df$pingtimestamp)
+```
+
+### 4.1.3) extracting trip starting locations
+
+Since GrabPosisi data is a time series data, we need to extract the first and last row of each trip id to get the origin and destination of each. We will use the dplyr package to do this.
+
+```{r}
+#| eval: false
+
+origin_df <- df %>%  
+  group_by(trj_id) %>% # group by trip id
+  arrange(pingtimestamp) %>% # arrange by pingtimestamp to sort the data
+  filter(row_number() == 1) %>% # get the first row of all the trip id
+  mutate(weekday = wday(pingtimestamp, label = TRUE, abbr = TRUE), # get the day of the week
+         start_hr = factor(hour(pingtimestamp)),# use factor to get ordinal data
+         day= factor(day(pingtimestamp)))
+```
+
+### 4.1.4) extracting trip ending locations
+
+```{r}
+#| eval: false
+
+destination_df <- df %>%  
+  group_by(trj_id) %>% # group by trip id
+  arrange(desc(pingtimestamp)) %>%  # arrange descending by pingtimestamp to sort the data
+  filter(row_number() == 1) %>% # get the last row of all the trip id
+  mutate(weekday = wday(pingtimestamp, label = TRUE, abbr = TRUE), # get the day of the week
+         end_hr = factor(hour(pingtimestamp)),# use factor to get ordinal data
+         day= factor(day(pingtimestamp)))
+```
+
+### 4.1.6) Convert origin_df (aspatial) to geospatial data
+
+In order to integrate GrabPosisi's dataset, we need to convert the origin_df and destination_df to geospatial data. We will use the st_as_sf function from the sf package to do this. We will also transform the coordinate reference system (CRS) of the data to 3414, which is the projected coordinate system for Singapore.
+
+```{r}
+#| eval: false
+origin_sf <- st_as_sf(origin_df,
+                      coords = c("rawlng", "rawlat"),
+                      crs = 4326) %>%
+  st_transform(crs = 3414)
+```
+
+### 4.1.7) Convert destination_df (aspatial) to geospatial data
+
+```{r}
+#| eval: false
+
+destination_sf <- st_as_sf(destination_df,
+                           coords = c("rawlng", "rawlat"),
+                           crs = 4326) %>%
+  st_transform(crs = 3414)
+```
+
 ## 4.2) Import Singapore Master Plan 2019 Subzone Boundary (No Sea) data
 
 ```{r}
+#| eval: false
 mpsz_sf <- st_read(dsn = "data", 
                 layer = "MPSZ-2019")
 ```
 
-## 4.3) Import Road data set from OpenStreetMap
-
-```{r}
-#| eval: false
-roads_sf <- st_read(dsn = "data", 
-                layer = "gis_osm_roads_free_1")
-```
-
-## 5) Data preparation
-
-## 5.1 Handle invalid data
-
-```{r}
-#| eval: false
-# the st_is_valid function checks whether a geometry is valid
-# which returns the indices of certain values based on logical conditions
-# length returns the length of data objects
-length(which(st_is_valid(mpsz_sf) == FALSE))
-```
-
-```{r}
-#| eval: false
-
-length(which(st_is_valid(roads_sf) == FALSE))
-```
-
-There are 6 invalid geometries in mpsz_sf and 0 invalid geometry in roads_sf.
-
-```{r}
-#| eval: false
-mpsz_sf <- st_make_valid(mpsz_sf)
-length(which(st_is_valid(mpsz_sf) == FALSE))
-```
-
-## 5.2 convert mpsz_sf into 3414
+### 4.2.1 Transforming the coordinate reference system (CRS) of mpsz_sf to 3414
 
 ```{r}
 #| eval: false
@@ -95,7 +146,45 @@ mpsz_sf <- st_transform(mpsz_sf,3414)
 st_crs(mpsz_sf)
 ```
 
-## 5.2) convert roads_sf into 3414
+### 4.2.2 Extracting the outer islands of mpsz and removing it from mpsz_sf
+
+Let's first take a look at the unique values of mpsz to see if there are any outer islands in the data. We'll be using the unique function to do this.
+
+```{r}
+#| eval: false
+
+unique(mpsz_sf$PLN_AREA_N)
+```
+
+As noted in the task, we are to exclude the outer islands from the Singapore boundary layer. We will use the st_difference function from the sf package to do this. With the above list, we can see that the outer islands are "SOUTHERN ISLANDS", "NORTH-EASTERN ISLANDS" and "WESTERN ISLANDS". We will use the st_union function to combine the outer islands and then use the st_difference function to remove the outer islands from the Singapore boundary layer.
+
+```{r}
+#| eval: false
+
+outer_island <- mpsz_sf[mpsz_sf$PLN_AREA_N == "SOUTHERN ISLANDS" | mpsz_sf$PLN_AREA_N == "NORTH-EASTERN ISLANDS" | mpsz_sf$PLN_AREA_N == "WESTERN ISLANDS",]
+```
+
+```{r}
+#| eval: false
+
+mpsz_sf_no_outer <- st_difference(st_union(mpsz_sf),st_union(outer_island))
+```
+
+```{r}
+#| eval: false
+
+plot(mpsz_sf_no_outer)
+```
+
+## 4.3) Import Road data set from OpenStreetMap
+
+```{r}
+#| eval: false
+roads_sf <- st_read(dsn = "data", 
+                layer = "gis_osm_roads_free_1")
+```
+
+### 4.3.1) Transforming the coordinate reference system (CRS) of roads_sf to 3414
 
 ```{r}
 #| eval: false
@@ -112,81 +201,158 @@ roads_sf_3414 <- st_transform(roads_sf,3414)
 ```{r}
 #| eval: false
 
-roads_sf_3414 <- transform(roads_sf, crs = 3414)
+st_crs(roads_sf_3414)
+```
 
+### 4.3.2) Filtering roads with different conditions to make it optimal for analysis
+
+We'll first begin by eliminating the roads with no speed limit. We will use the filter function from the dplyr package to do this. Since all roads in Singapore that are not pedestrian walkways should have a speed limit, we will filter the roads with a speed limit of greater than 0.
+
+```{r}
+#| eval: false
+
+road = roads_sf_3414 %>%
+  filter(maxspeed > 0)
+```
+
+Next, we will take a look at the unique values of fclass in roads_sf_3414 to see if there are any fclass that we need to remove. We'll be using the unique function to do this.
+
+```{r}
+#| eval: false
+
+unique(road$fclass)
+```
+
+We can notice that there are still several fclass that we need to remove. We will remove all rows of roads that are fclass in \["primary_link" "service" "unclassified" "living_street" "footway" "secondary_link" "tertiary_link" "cycleway" "pedestrian"\].
+
+```{r}
+#| eval: false
+
+road = road[!road$fclass %in% c("primary_link", "service", "unclassified", "living_street", "footway", "secondary_link", "tertiary_link", "cycleway", "pedestrian"),]
+```
+
+Since the data from OpenStreetMap consist of Malaysia, Brunei & Singapore, let's filter out the roads that are not in Singapore. We will use the st_intersection function from the sf package to do this.
+
+##### Small note (for future self): Reduce datasets to only Singapore to reduce computational time. If you intially know that it consist of multiple countries, it is better to filter it out first before doing any analysis.
+
+```{r}
+#| eval: false
+
+road = st_intersection(road, mpsz_sf)
+```
+
+
+Upon inspection, we still notice that there are some roads which do not have names. Since this does not provide us with more information, let's reduce it further.
+
+```{r}
+#| eval: false
+
+road = road[!is.na(road$name),]
 ```
 
 ```{r}
 #| eval: false
 
-st_crs(roads_sf_3414)
+unique(road$layer)
 ```
 
-## 5.3) storing data in rds for future use
+```{r}
+#| eval: false
 
-Also because my laptop is terrible
+road = road[road$layer == 0,]
+```
+
+WARNING: Visualising all the roads in Singapore takes a long time. To reduce render time, an image of the results will be provided below. 
+
+```{r}
+#| eval: false
+
+plot(road['name'])
+```
+
+![](images/sg_roads.png)
+
+## 5) Data preparation
+
+## 5.1) Handle invalid data
+
+As a precaution, let's check all the main datasets for invalid data. We will use the st_is_valid function from the sf package to do this. We will then use the which function to get the indices of the invalid data and then use the length function to get the number of invalid data.
+
+
+```{r}
+#| eval: false
+# the st_is_valid function checks whether a geometry is valid
+# which returns the indices of certain values based on logical conditions
+# length returns the length of data objects
+length(which(st_is_valid(mpsz_sf) == FALSE))
+```
+
+```{r}
+#| eval: false
+
+length(which(st_is_valid(mpsz_sf_no_outer) == FALSE))
+```
+
+```{r}
+#| eval: false
+
+length(which(st_is_valid(road) == FALSE))
+```
+
+```{r}
+#| eval: false
+
+length(which(st_is_valid(origin_sf) == FALSE))
+```
+
+```{r}
+#| eval: false
+
+length(which(st_is_valid(destination_sf) == FALSE))
+```
+
+oh no! original mpsz has 6 invalid data! lets remove it.
+
+```{r}
+#| eval: false
+
+mpsz_sf <- st_make_valid(mpsz_sf)
+```
+
+then we'll check again
+
+```{r}
+#| eval: false
+
+length(which(st_is_valid(mpsz_sf) == FALSE))
+```
+
+we're good to go!
+
+## 5.4) storing data in rds for future use
+
+Using the write_rds function from the arrow package, we will store the data in rds format for future. This allows us to reduce the number of code chunks to run and also reduce the computational time.
+
 
 ```{r}
 #| eval: false
 
 write_rds(mpsz_sf, "data/rds/mpsz.rds")
-write_rds(roads_sf_3414, "data/rds/roads_sf.rds")
-```
-
-## 5.5) Data preparation for GrabPosisi data
-
-### 5.5.1) conver the data type of pingtimestamp from character to date-time
-
-```{r}
-#| eval: false
-df$pingtimestamp <- as_datetime(df$pingtimestamp)
-```
-
-### 5.5.2) extracting trip starting locations
-
-```{r}
-#| eval: false
-
-origin_df <- df %>%  
-  group_by(trj_id) %>% # group by trip id
-  arrange(pingtimestamp) %>% # arrange by pingtimestamp to sort the data
-  filter(row_number() == 1) %>% # get the first row of all the trip id
-  mutate(weekday = wday(pingtimestamp, label = TRUE, abbr = TRUE), # get the day of the week
-         start_hr = factor(hour(pingtimestamp)),# use factor to get ordinal data
-         day= factor(day(pingtimestamp)))
-```
-
-### 5.5.3) extracting trip ending locations
-
-```{r}
-#| eval: false
-
-destination_df <- df %>%  
-  group_by(trj_id) %>% # group by trip id
-  arrange(desc(pingtimestamp)) %>%  # arrange descending by pingtimestamp to sort the data
-  filter(row_number() == 1) %>% # get the last row of all the trip id
-  mutate(weekday = wday(pingtimestamp, label = TRUE, abbr = TRUE), # get the day of the week
-         end_hr = factor(hour(pingtimestamp)),# use factor to get ordinal data
-         day= factor(day(pingtimestamp)))
-```
-
-### 5.5.4) storing GrabPosisi data for future use
-
-```{r}
-#| eval: false
-write_rds(origin_df, "data/rds/origin_df.rds")
-write_rds(destination_df, "data/rds/destination_df.rds")
+write_rds(mpsz_sf_no_outer, "data/rds/sg_sf.rds")
+write_rds(road, "data/rds/roads_sf.rds")
+write_rds(origin_sf, "data/rds/origin_sf.rds")
+write_rds(destination_sf, "data/rds/destination_sf.rds")
 
 ```
 
 ## 5.6) Load data from rds
 
 ```{r}
-origin_df <- read_rds("data/rds/origin_df.rds")
-destination_df <- read_rds("data/rds/destination_df.rds")
+origin_sf <- read_rds("data/rds/origin_sf.rds")
+destination_sf <- read_rds("data/rds/destination_sf.rds")
+sg_sf <- read_rds("data/rds/sg_sf.rds")
 mpsz <- read_rds("data/rds/mpsz.rds")
 roads <- read_rds("data/rds/roads_sf.rds")
-bus_stop <- read_rds("data/rds/bus_stop.rds")
 ```
 
 ```{r}
@@ -212,38 +378,8 @@ write_rds(bus_stop, "data/rds/bus_stop.rds")
 ```
 
 
-filter roads
-```{r}
-f_road <- filter(roads, maxspeed > 0)
-```
-
-
-```{r}
-# tm_shape(mpsz$geometry)+
-#  tm_polygons()+
-#  tm_shape(origin_sf)+
-#  tm_dots()
-```
-convert aspatial to geospatial 
-```{r}
-origin_sf <- st_as_sf(origin_df,
-                      coords = c("rawlng", "rawlat"),
-                      crs = 4326) %>%
-  st_transform(crs = 3414)
-```
-
-
-```{r}
-# tm_shape(mpsz)+
-#  tm_polygons()+
-#  tm_shape(f_road)+
-#  tm_lines(size=0.2, col="red")
-#  tm_shape(origin_df)+
-#  tm_dots(alpha=0.4, size = 0.05, col = "blue")
-```
-
-
 we plot the origin of grab trips to singapore map to determine the distribution of grab trips in singapore
+
 ```{r}
 tmap_mode("view")
 tm_shape(mpsz)+
@@ -254,31 +390,28 @@ tm_shape(mpsz)+
 ```
 
 ```{r}
-sg_sf <- mpsz %>%
-  st_union()
+tm_shape(origin_sf)+
+  tm_dots()
 ```
 
-```{r}
-plot(sg_sf)
-```
+lets prep for KDE
 
-lets prep for KDE 
+convert sf to sp cos some packages limited to sp
 
-convert sf to sp cos some packages limited to sp 
 ```{r}
 sg <- as(sg_sf, "Spatial")
 mpsz_spc <- as(mpsz, "Spatial")
 orgin <- as(origin_sf, "Spatial")
 ```
 
-converting spatial class into generic spatial objects  
+converting spatial class into generic spatial objects
 
 ```{r}
 origin_sp <- as(origin_sf, "Spatial")
 sg_sp <- as(sg, "SpatialPolygons")
 ```
 
-converting generic sp format into spatstat ppp format 
+converting generic sp format into spatstat ppp format
 
 ```{r}
 origin_ppp <- as(origin_sp["pingtimestamp"], "ppp")
@@ -288,7 +421,7 @@ origin_ppp
 convert origin_sf to spatial object
 
 ```{r}
-plot(origin_ppp)
+plot(origin_ppp, legend = FALSE)
 ```
 
 ```{r}
@@ -322,7 +455,7 @@ originSG_ppp = origin_ppp[sg_owin]
 plot(originSG_ppp, legend = FALSE)
 ```
 
-kde 
+kde
 
 ```{r}
 kde_originSG_bw <- density(originSG_ppp,
@@ -334,10 +467,11 @@ kde_originSG_bw <- density(originSG_ppp,
 ```{r}
 plot(kde_originSG_bw)
 ```
-rescale 
+
+rescale
 
 ```{r}
-kde_originSG_bw_rescale <- rescale(kde_originSG_bw, 1000, "km")
+originSG_ppp_rescale <- rescale(originSG_ppp, 1000, "km")
 ```
 
 ```{r}
@@ -345,33 +479,270 @@ bw <- bw.diggle(originSG_ppp)
 bw
 ```
 
-
 replot
+
 ```{r}
-# kde_originSG_bw_rescale <- density(kde_originSG_bw_rescale,
-#                              sigma=bw,
-#                              edge=TRUE,
-#                            kernel="gaussian") 
-# plot(kde_originSG_bw_rescale)
+kde_originSG_bw <- density(originSG_ppp_rescale,
+                            sigma=bw,
+                            edge=TRUE,
+                            kernel="gaussian") 
+plot(kde_originSG_bw)
+```
+
+!!! adaptive
+
+```{r}
+kde_originSG_adaptive <- adaptive.density(originSG_ppp_rescale, method="kernel")
+plot(kde_originSG_adaptive)
+```
+
+convert to grid object
+
+```{r}
+gridded_kde_originSG_bw <- as.SpatialGridDataFrame.im(kde_originSG_bw)
+spplot(gridded_kde_originSG_bw)
+```
+
+Converting gridded output into raster
+
+```{r}
+raster_kde_originSG_bw <- raster(gridded_kde_originSG_bw)
+```
+
+```{r}
+raster_kde_originSG_bw
+
+```
+
+Assigning projection systems
+
+```{r}
+projection(raster_kde_originSG_bw) <- CRS("+init=EPSG:3414")
+raster_kde_originSG_bw
+```
+
+visualising the output
+
+```{r}
+tm_shape(raster_kde_originSG_bw) + 
+  tm_raster("v") +
+  tm_layout(legend.position = c("right", "bottom"), frame = FALSE)
+```
+
+set tmap mode to view mode
+
+```{r}
+tmap_mode("plot")
+```
+
+```{r}
+tm_shape(raster_kde_originSG_bw) + 
+  tm_raster("v") +
+  tm_layout(legend.position = c("right", "bottom"), frame = FALSE)
+```
+
+use tm_shape to plot roads\['name'\]
+
+```{r}
+tm_shape(roads['name'])+
+  tm_lines(col = "black", lwd = 0.5)+
+  tm_shape(raster_kde_originSG_bw) + 
+  tm_raster("v") +
+  tm_layout(legend.position = c("right", "bottom"), frame = FALSE)
+```
+
+# overlay the raster_kde_originSG_bw below roads\['name'\] to show the kernel density on the roads
+
+```{r}
+tm_shape(roads['name'])+
+  tm_lines(col = "black", lwd = 0.5, alpha = 0.3)+
+  tm_shape(raster_kde_originSG_bw) + 
+  tm_raster("v") +
+  tm_layout(legend.position = c("right", "bottom"), frame = FALSE)
+```
+
+TNKDE leggo
+
+```{r}
+str(roads)
+```
+
+```{r}
+st_crs(origin_sf)
+```
+
+
+```{r}
+pg <- mpsz %>%
+  filter(PLN_AREA_N == "PUNGGOL")
+tm <- mpsz %>%
+  filter(PLN_AREA_N == "TAMPINES")
+ck <- mpsz %>%
+  filter(PLN_AREA_N == "CHOA CHU KANG")
+jw <- mpsz %>%
+  filter(PLN_AREA_N == "JURONG WEST")
+```
+
+```{r}
+road_pg = st_intersection(roads, pg)
+road_tm = st_intersection(roads, tm)
+road_ck = st_intersection(roads, ck)
+road_jw = st_intersection(roads, jw)
+```
+
+```{r}
+origin_pg = st_intersection(origin_sf, pg)
+origin_tm = st_intersection(origin_sf, tm)
+origin_ck = st_intersection(origin_sf, ck)
+origin_jw = st_intersection(origin_sf, jw)
+```
+
+```{r}
+road_pg_ls = st_cast(road_pg, "LINESTRING")
+road_tm_ls = st_cast(road_tm, "LINESTRING")
+road_ck_ls = st_cast(road_ck, "LINESTRING")
+road_jw_ls = st_cast(road_jw, "LINESTRING")
+```
+
+```{r}
+lixels_pg <- lixelize_lines(road_pg_ls, 200, mindist = 50)
+lixels_tm <- lixelize_lines(road_tm_ls, 200, mindist = 50)
+lixels_ck <- lixelize_lines(road_ck_ls, 200, mindist = 50)
+lixels_jw <- lixelize_lines(road_jw_ls, 200, mindist = 50)
+
+```
+
+```{r}
+samples_pg <- lines_center(lixels_pg)
+samples_tm <- lines_center(lixels_tm)
+samples_ck <- lines_center(lixels_ck)
+samples_jw <- lines_center(lixels_jw)
+```
+
+```{r}
+densities_pg <- nkde(road_pg_ls['name'], 
+                  events = origin_pg,
+                  w = rep(1,nrow(origin_pg)),
+                  samples = samples_pg,
+                  kernel_name = "quartic",
+                  bw = 200, 
+                  div= "bw", 
+                  method = "simple", 
+                  digits = 1, 
+                  tol = 1,
+                  grid_shape = c(1,1), 
+                  max_depth = 8,
+                  agg = 5, #we aggregate events within a 5m radius (faster calculation)
+                  sparse = TRUE,
+                  verbose = FALSE)
+```
+
+```{r}
+densities_tm <- nkde(road_tm_ls['name'], 
+                  events = origin_tm,
+                  w = rep(1,nrow(origin_tm)),
+                  samples = samples_tm,
+                  kernel_name = "quartic",
+                  bw = 200, 
+                  div= "bw", 
+                  method = "simple", 
+                  digits = 1, 
+                  tol = 1,
+                  grid_shape = c(1,1), 
+                  max_depth = 8,
+                  agg = 5, #we aggregate events within a 5m radius (faster calculation)
+                  sparse = TRUE,
+                  verbose = FALSE)
+```
+
+```{r}
+densities_ck <- nkde(road_ck_ls['name'], 
+                  events = origin_ck,
+                  w = rep(1,nrow(origin_ck)),
+                  samples = samples_ck,
+                  kernel_name = "quartic",
+                  bw = 200, 
+                  div= "bw", 
+                  method = "simple", 
+                  digits = 1, 
+                  tol = 1,
+                  grid_shape = c(1,1), 
+                  max_depth = 8,
+                  agg = 5, #we aggregate events within a 5m radius (faster calculation)
+                  sparse = TRUE,
+                  verbose = FALSE)
+```
+
+```{r}
+densities_jw <- nkde(road_jw_ls['name'], 
+                  events = origin_jw,
+                  w = rep(1,nrow(origin_jw)),
+                  samples = samples_jw,
+                  kernel_name = "quartic",
+                  bw = 200, 
+                  div= "bw", 
+                  method = "simple", 
+                  digits = 1, 
+                  tol = 1,
+                  grid_shape = c(1,1), 
+                  max_depth = 8,
+                  agg = 5, #we aggregate events within a 5m radius (faster calculation)
+                  sparse = TRUE,
+                  verbose = FALSE)
+```
+
+```{r}
+samples_pg$density <- densities_pg
+lixels_pg$density <- densities_pg
+samples_tm$density <- densities_tm
+lixels_tm$density <- densities_tm
+samples_ck$density <- densities_ck
+lixels_ck$density <- densities_ck
+samples_jw$density <- densities_jw
+lixels_jw$density <- densities_jw
+```
+
+```{r}
+# rescaling to help the mapping
+# !!! do not run more than once. 
+samples_pg$density <- samples_pg$density*1000
+lixels_pg$density <- lixels_pg$density*1000
+samples_tm$density <- samples_tm$density*1000
+lixels_tm$density <- lixels_tm$density*1000
+samples_ck$density <- samples_ck$density*1000
+lixels_ck$density <- lixels_ck$density*1000
+samples_jw$density <- samples_jw$density*1000
+lixels_jw$density <- lixels_jw$density*1000
+```
+
+```{r}
+tmap_mode('view')
+tm_shape(lixels_pg)+
+  tm_lines(col="density")+
+tm_shape(origin_pg)+
+  tm_dots(alpha = 0.5)
+```
+
+```{r}
+tm_shape(lixels_tm)+
+  tm_lines(col="density",lwd=5)+
+tm_shape(origin_tm)+
+  tm_dots(alpha = 0.3)
+```
+
+```{r}
+tm_shape(lixels_ck)+
+  tm_lines(col="density", lwd = 4)+
+tm_shape(origin_ck)+
+  tm_dots(alpha = 0.3)
+```
+
+```{r}
+tm_shape(lixels_jw)+
+  tm_lines(col="density", lwd = 4)+
+tm_shape(origin_jw)+
+  tm_dots(alpha = 0.3)
 ```
 
 ```{r}
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
