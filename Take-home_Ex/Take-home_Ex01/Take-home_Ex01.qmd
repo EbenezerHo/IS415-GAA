@@ -35,28 +35,21 @@ The Task
 
 -   Describe the spatial patterns revealed by the kernel density maps.
 
-## 2) Setup
-
-### 2.1) Datasets used
-
-## 3) Install and load packages
+## 2) Setup and Installation of packages
 
 ```{r}
 pacman:: p_load (arrow, lubridate, tidyverse, tmap, sf, raster, spatstat, tmap, maptools, sp, spNetwork)
 ```
 
-## 4) Import data
+## 3) Data preparation
 
-## 4.1) Import Grab Posisi data
+### 3.1) Import Grab Posisi data
 
 ```{r}
 #| eval: false
 df <- read_parquet("data/GrabPosisi/part-00000-8bbff892-97d2-4011-9961-703e38972569.c000.snappy.parquet")
 ```
-
-### 4.1.1 Extracting the origin and destination data from Grab Posisi
-
-### 4.1.2) conver the data type of pingtimestamp from character to date-time
+### 3.1.1) Convert the data type of pingtimestamp from character to date-time
 
 Since the values seems to derive from a timestamp, we will convert the data type of pingtimestamp from character to date. This will allow us to process the data in a more efficient manner with the correct data type. We will use the as_datetime function from the lubridate package to do this.
 
@@ -65,7 +58,7 @@ Since the values seems to derive from a timestamp, we will convert the data type
 df$pingtimestamp <- as_datetime(df$pingtimestamp)
 ```
 
-### 4.1.3) extracting trip starting locations
+### 3.1.2) extracting trip starting locations
 
 Since GrabPosisi data is a time series data, we need to extract the first and last row of each trip id to get the origin and destination of each. We will use the dplyr package to do this.
 
@@ -81,21 +74,8 @@ origin_df <- df %>%
          day= factor(day(pingtimestamp)))
 ```
 
-### 4.1.4) extracting trip ending locations
 
-```{r}
-#| eval: false
-
-destination_df <- df %>%  
-  group_by(trj_id) %>% # group by trip id
-  arrange(desc(pingtimestamp)) %>%  # arrange descending by pingtimestamp to sort the data
-  filter(row_number() == 1) %>% # get the last row of all the trip id
-  mutate(weekday = wday(pingtimestamp, label = TRUE, abbr = TRUE), # get the day of the week
-         end_hr = factor(hour(pingtimestamp)),# use factor to get ordinal data
-         day= factor(day(pingtimestamp)))
-```
-
-### 4.1.6) Convert origin_df (aspatial) to geospatial data
+### 3.1.3) Convert origin_df (aspatial) to geospatial data
 
 In order to integrate GrabPosisi's dataset, we need to convert the origin_df and destination_df to geospatial data. We will use the st_as_sf function from the sf package to do this. We will also transform the coordinate reference system (CRS) of the data to 3414, which is the projected coordinate system for Singapore.
 
@@ -107,18 +87,8 @@ origin_sf <- st_as_sf(origin_df,
   st_transform(crs = 3414)
 ```
 
-### 4.1.7) Convert destination_df (aspatial) to geospatial data
 
-```{r}
-#| eval: false
-
-destination_sf <- st_as_sf(destination_df,
-                           coords = c("rawlng", "rawlat"),
-                           crs = 4326) %>%
-  st_transform(crs = 3414)
-```
-
-## 4.2) Import Singapore Master Plan 2019 Subzone Boundary (No Sea) data
+### 3.2) Import Singapore Master Plan 2019 Subzone Boundary (No Sea) data
 
 ```{r}
 #| eval: false
@@ -126,7 +96,7 @@ mpsz_sf <- st_read(dsn = "data",
                 layer = "MPSZ-2019")
 ```
 
-### 4.2.1 Transforming the coordinate reference system (CRS) of mpsz_sf to 3414
+### 3.2.1 Transforming the coordinate reference system (CRS) of mpsz_sf to 3414
 
 ```{r}
 #| eval: false
@@ -146,7 +116,7 @@ mpsz_sf <- st_transform(mpsz_sf,3414)
 st_crs(mpsz_sf)
 ```
 
-### 4.2.2 Extracting the outer islands of mpsz and removing it from mpsz_sf
+### 3.2.2 Extracting the outer islands of mpsz and removing it from mpsz_sf
 
 Let's first take a look at the unique values of mpsz to see if there are any outer islands in the data. We'll be using the unique function to do this.
 
@@ -167,16 +137,24 @@ outer_island <- mpsz_sf[mpsz_sf$PLN_AREA_N == "SOUTHERN ISLANDS" | mpsz_sf$PLN_A
 ```{r}
 #| eval: false
 
-mpsz_sf_no_outer <- st_difference(st_union(mpsz_sf),st_union(outer_island))
+mpsz_boundary <- st_difference(st_union(mpsz_sf),st_union(outer_island))
 ```
 
 ```{r}
 #| eval: false
 
-plot(mpsz_sf_no_outer)
+mpsz_sf_no_outer <- st_difference(mpsz_sf,st_union(outer_island))
+
 ```
 
-## 4.3) Import Road data set from OpenStreetMap
+```{r}
+#| eval: false
+
+plot(mpsz_sf_no_outer['PLN_AREA_N'])
+```
+
+
+### 3.3) Import Road data set from OpenStreetMap
 
 ```{r}
 #| eval: false
@@ -184,7 +162,7 @@ roads_sf <- st_read(dsn = "data",
                 layer = "gis_osm_roads_free_1")
 ```
 
-### 4.3.1) Transforming the coordinate reference system (CRS) of roads_sf to 3414
+### 3.3.1) Transforming the coordinate reference system (CRS) of roads_sf to 3414
 
 ```{r}
 #| eval: false
@@ -204,7 +182,7 @@ roads_sf_3414 <- st_transform(roads_sf,3414)
 st_crs(roads_sf_3414)
 ```
 
-### 4.3.2) Filtering roads with different conditions to make it optimal for analysis
+### 3.3.2) Filtering roads with different conditions to make it optimal for analysis
 
 We'll first begin by eliminating the roads with no speed limit. We will use the filter function from the dplyr package to do this. Since all roads in Singapore that are not pedestrian walkways should have a speed limit, we will filter the roads with a speed limit of greater than 0.
 
@@ -238,7 +216,7 @@ Since the data from OpenStreetMap consist of Malaysia, Brunei & Singapore, let's
 ```{r}
 #| eval: false
 
-road = st_intersection(road, mpsz_sf)
+road = st_intersection(road, mpsz_sf_no_outer)
 ```
 
 
@@ -272,12 +250,10 @@ plot(road['name'])
 
 ![](images/sg_roads.png)
 
-## 5) Data preparation
 
-## 5.1) Handle invalid data
+## 4) Handle invalid data
 
 As a precaution, let's check all the main datasets for invalid data. We will use the st_is_valid function from the sf package to do this. We will then use the which function to get the indices of the invalid data and then use the length function to get the number of invalid data.
-
 
 ```{r}
 #| eval: false
@@ -296,6 +272,12 @@ length(which(st_is_valid(mpsz_sf_no_outer) == FALSE))
 ```{r}
 #| eval: false
 
+length(which(st_is_valid(mpsz_boundary) == FALSE))
+```
+
+```{r}
+#| eval: false
+
 length(which(st_is_valid(road) == FALSE))
 ```
 
@@ -303,12 +285,6 @@ length(which(st_is_valid(road) == FALSE))
 #| eval: false
 
 length(which(st_is_valid(origin_sf) == FALSE))
-```
-
-```{r}
-#| eval: false
-
-length(which(st_is_valid(destination_sf) == FALSE))
 ```
 
 oh no! original mpsz has 6 invalid data! lets remove it.
@@ -326,10 +302,9 @@ then we'll check again
 
 length(which(st_is_valid(mpsz_sf) == FALSE))
 ```
-
 we're good to go!
 
-## 5.4) storing data in rds for future use
+### 5.1) Storing data in rds for future use
 
 Using the write_rds function from the arrow package, we will store the data in rds format for future. This allows us to reduce the number of code chunks to run and also reduce the computational time.
 
@@ -337,48 +312,41 @@ Using the write_rds function from the arrow package, we will store the data in r
 ```{r}
 #| eval: false
 
-write_rds(mpsz_sf, "data/rds/mpsz.rds")
-write_rds(mpsz_sf_no_outer, "data/rds/sg_sf.rds")
+write_rds(mpsz_sf_no_outer, "data/rds/mpsz.rds")
+write_rds(mpsz_boundary, "data/rds/sg_sf.rds")
 write_rds(road, "data/rds/roads_sf.rds")
 write_rds(origin_sf, "data/rds/origin_sf.rds")
-write_rds(destination_sf, "data/rds/destination_sf.rds")
-
 ```
 
-## 5.6) Load data from rds
+### 5.2) Load data from rds
 
 ```{r}
 origin_sf <- read_rds("data/rds/origin_sf.rds")
-destination_sf <- read_rds("data/rds/destination_sf.rds")
 sg_sf <- read_rds("data/rds/sg_sf.rds")
 mpsz <- read_rds("data/rds/mpsz.rds")
 roads <- read_rds("data/rds/roads_sf.rds")
 ```
 
-```{r}
-BS <- st_read(dsn = "data/BusStopLocation", 
-                layer = "BusStop")
-```
+## 6) Initialisation of Spatial Point Patterns Analysis
+
+### 6.1) Chloropleth map of the master plan of singapore
+
+Lets do a quick plot of a chloropleth map of the master plan of singapore to view the different towns available.
 
 ```{r}
-bus_stop <- BS['BUS_ROOF_N']
+tmap_mode("plot")
+tmap_options(max.categories = 55)
+tm_shape(mpsz)+
+  tm_fill(col = "PLN_AREA_N")+
+  tm_layout(legend.position = c("right", "bottom"),
+            frame = FALSE,
+            title = "Master Plan of Singapore 2019",
+            legend.text.size = 0.5
+            )
 ```
+## 6.2) Grab trips in Singapore
 
-```{r}
-bus_stop <- st_transform(bus_stop,3414)
-```
-
-```{r}
-st_crs(bus_stop)
-```
-
-```{r}
-write_rds(bus_stop, "data/rds/bus_stop.rds")
-
-```
-
-
-we plot the origin of grab trips to singapore map to determine the distribution of grab trips in singapore
+To zoom in the different regions, we'll be plotting a chloropleth map of origin of grab trips to singapore map to determine the distribution of grab trips in singapore
 
 ```{r}
 tmap_mode("view")
@@ -389,57 +357,222 @@ tm_shape(mpsz)+
   tm_dots(alpha=0.4, size = 0.05, col = "blue")
 ```
 
+Taking a look at the distribution of grab trips in singapore, we can see that the distribution is quite uniform. However, we can see that there are more grab trips in the central region of Singapore. This is expected as the central region of Singapore is the most densely populated area in Singapore.
+
+However, I want to take a look at the different regions of Singapore to see the different distributions. I will be selecting 4 towns from different regions. 
+
+The towns selected will be Jurong East(West), Woodlands(North), Tampines(East) and Rochor(Central).
+
+Lets zoom in to the different regions of Singapore to see the different distributions.
+
+## 6.3) Zooming into specific study areas
+
 ```{r}
-tm_shape(origin_sf)+
-  tm_dots()
+tmp <- mpsz %>%
+  filter(PLN_AREA_N == "TAMPINES")
+jre <- mpsz %>%
+  filter(PLN_AREA_N == "JURONG EAST")
+rch <- mpsz %>%
+  filter(PLN_AREA_N == "ROCHOR")
+wld <- mpsz %>%
+  filter(PLN_AREA_N == "WOODLANDS")
 ```
 
-lets prep for KDE
-
-convert sf to sp cos some packages limited to sp
 
 ```{r}
-sg <- as(sg_sf, "Spatial")
-mpsz_spc <- as(mpsz, "Spatial")
-orgin <- as(origin_sf, "Spatial")
+road_tmp = st_intersection(roads, tmp)
+road_jre= st_intersection(roads, jre)
+road_rch = st_intersection(roads, rch)
+road_wld = st_intersection(roads, wld)
 ```
 
-converting spatial class into generic spatial objects
+```{r}
+origin_tmp = st_intersection(origin_sf, tmp)
+origin_jre = st_intersection(origin_sf, jre)
+origin_rch = st_intersection(origin_sf, rch)
+origin_wld  = st_intersection(origin_sf, wld)
+```
 
 ```{r}
-origin_sp <- as(origin_sf, "Spatial")
+bound_tmp = st_union(tmp)
+bound_jre = st_union(jre)
+bound_rch = st_union(rch)
+bound_wld = st_union(wld)
+```
+
+Let's take a look at our study area!
+
+```{r}
+tm_shape(tmp)+
+  tm_polygons()+
+  tm_text("SUBZONE_N", size=0.5)+
+  tm_shape(origin_tmp)+
+  tm_dots(alpha=0.4, size = 0.05, col = "blue")
+```
+
+```{r}
+tm_shape(jre)+
+  tm_polygons()+
+  tm_text("SUBZONE_N", size=0.5)+
+  tm_shape(origin_jre)+
+  tm_dots(alpha=0.4, size = 0.05, col = "blue")
+```
+
+```{r}
+tm_shape(rch)+
+  tm_polygons()+
+  tm_text("SUBZONE_N", size=0.5)+
+  tm_shape(origin_rch)+
+  tm_dots(alpha=0.4, size = 0.05, col = "blue")
+```
+
+```{r}
+tm_shape(wld)+
+  tm_polygons()+
+  tm_text("SUBZONE_N", size=0.5)+
+  tm_shape(origin_wld)+
+  tm_dots(alpha=0.4, size = 0.05, col = "blue")
+```
+
+From this, we can predict how the distribution of grab trips will look like in the different regions of Singapore.
+
+## 7) Storing data in rds and loading it from rds
+
+Before we proceed to the next step, we shall store the data of each region into rds for future use.
+
+```{r}
+write_rds(tmp, "data/rds/tmp.rds")
+write_rds(jre, "data/rds/jre.rds")
+write_rds(rch, "data/rds/rch.rds")
+write_rds(wld, "data/rds/wld.rds")
+
+write_rds(road_tmp, "data/rds/road_tmp.rds")
+write_rds(road_jre, "data/rds/road_jre.rds")
+write_rds(road_rch, "data/rds/road_rch.rds")
+write_rds(road_wld, "data/rds/road_wld.rds")
+
+write_rds(origin_tmp, "data/rds/origin_tmp.rds")
+write_rds(origin_jre, "data/rds/origin_jre.rds")
+write_rds(origin_rch, "data/rds/origin_rch.rds")
+write_rds(origin_wld, "data/rds/origin_wld.rds")
+
+write_rds(bound_tmp, "data/rds/bound_tmp.rds")
+write_rds(bound_jre, "data/rds/bound_jre.rds")
+write_rds(bound_rch, "data/rds/bound_rch.rds")
+write_rds(bound_wld, "data/rds/bound_wld.rds")
+```
+
+Load the data from rds for each region
+
+```{r}
+tmp <- read_rds("data/rds/tmp.rds")
+jre <- read_rds("data/rds/jre.rds")
+rch <- read_rds("data/rds/rch.rds")
+wld <- read_rds("data/rds/wld.rds")
+
+road_tmp <- read_rds("data/rds/road_tmp.rds")
+road_jre <- read_rds("data/rds/road_jre.rds")
+road_rch <- read_rds("data/rds/road_rch.rds")
+road_wld <- read_rds("data/rds/road_wld.rds")
+
+origin_tmp <- read_rds("data/rds/origin_tmp.rds")
+origin_jre <- read_rds("data/rds/origin_jre.rds")
+origin_rch <- read_rds("data/rds/origin_rch.rds")
+origin_wld <- read_rds("data/rds/origin_wld.rds")
+
+bound_tmp <- read_rds("data/rds/bound_tmp.rds")
+bound_jre <- read_rds("data/rds/bound_jre.rds")
+bound_rch <- read_rds("data/rds/bound_rch.rds")
+bound_wld <- read_rds("data/rds/bound_wld.rds")
+
+```
+
+
+## First-order Spatial Point Patterns Analysis: Kernel Density Estimation
+
+### 8.1) Kernel Density Estimation (KDE)
+
+We will be getting the KDE for the 4 towns selected
+
+### 8.1.1) Setting up the data for KDE
+
+```{r}
+bound_tmp_spc <- as(bound_tmp, "Spatial")
+bound_jre_spc <- as(bound_jre, "Spatial")
+bound_rch_spc <- as(bound_rch, "Spatial")
+bound_wld_spc <- as(bound_wld, "Spatial")
+
+tmp_spc <- as(tmp, "Spatial")
+jre_spc <- as(jre, "Spatial")
+rch_spc <- as(rch, "Spatial")
+wld_spc <- as(wld, "Spatial")
+
+origin_tmp_spc <- as(origin_tmp, "Spatial")
+origin_jre_spc <- as(origin_jre, "Spatial")
+origin_rch_spc <- as(origin_rch, "Spatial")
+origin_wld_spc <- as(origin_wld, "Spatial")
+
+origin_spc = as_Spatial(origin_sf)
+sg = as_Spatial(sg_sf)
+```
+
+Converting spatial class into generic spatial objects
+
+```{r}
+bound_tmp_sp <- as(bound_tmp_spc, "SpatialPolygons")
+bound_jre_sp <- as(bound_jre_spc, "SpatialPolygons")
+bound_rch_sp <- as(bound_rch_spc, "SpatialPolygons")
+bound_wld_sp <- as(bound_wld_spc, "SpatialPolygons")
+
 sg_sp <- as(sg, "SpatialPolygons")
 ```
 
 converting generic sp format into spatstat ppp format
 
 ```{r}
-origin_ppp <- as(origin_sp["pingtimestamp"], "ppp")
+origin_tmp_ppp <- as(origin_tmp_spc["pingtimestamp"], "ppp")
+origin_jre_ppp <- as(origin_jre_spc["pingtimestamp"], "ppp")
+origin_rch_ppp <- as(origin_rch_spc["pingtimestamp"], "ppp")
+origin_wld_ppp <- as(origin_wld_spc["pingtimestamp"], "ppp")
+
+```
+
+
+```{r}
+origin_ppp <- as(origin_spc["pingtimestamp"], "ppp")
 origin_ppp
 ```
 
-convert origin_sf to spatial object
+### 8.1.2) Checking for duplcates
 
-```{r}
-plot(origin_ppp, legend = FALSE)
-```
+To ensure that there are no duplicated points in the origin_ppp, we will use the duplicated function from the base package to do this.
 
 ```{r}
 any(duplicated(origin_ppp))
-
+any(duplicated(origin_tmp_ppp))
+any(duplicated(origin_jre_ppp))
+any(duplicated(origin_rch_ppp))
+any(duplicated(origin_wld_ppp))
 ```
+Everything looks good!
 
 ```{r}
-tmap_mode('view')
-tm_shape(origin_sf) +
-  tm_dots(alpha=0.4, 
-          size=0.05)
+par(mfrow=c(2,2))
+plot(origin_tmp_ppp, legend = FALSE)
+plot(origin_jre_ppp, legend = FALSE)
+plot(origin_rch_ppp, legend = FALSE)
+plot(origin_wld_ppp, legend = FALSE)
 ```
+
 
 ```{r}
 sg_owin <- as(sg_sp, "owin")
-
+bound_tmp_owin <- as(bound_tmp_sp, "owin")
+bound_jre_owin <- as(bound_jre_sp, "owin")
+bound_rch_owin <- as(bound_rch_sp, "owin")
+bound_wld_owin <- as(bound_wld_sp, "owin")
 ```
+
 
 ```{r}
 plot(sg_owin)
@@ -448,6 +581,19 @@ plot(sg_owin)
 
 ```{r}
 originSG_ppp = origin_ppp[sg_owin]
+originTMP_ppp = origin_tmp_ppp[bound_tmp_owin]
+originJRE_ppp = origin_jre_ppp[bound_jre_owin]
+originRCH_ppp = origin_rch_ppp[bound_rch_owin]
+originWLD_ppp = origin_wld_ppp[bound_wld_owin]
+```
+
+
+```{r}
+par(mfrow=c(2,2))
+plot(originTMP_ppp, legend = FALSE)
+plot(originJRE_ppp, legend = FALSE)
+plot(originRCH_ppp, legend = FALSE)
+plot(originWLD_ppp, legend = FALSE)
 ```
 
 ```{r}
@@ -455,48 +601,168 @@ originSG_ppp = origin_ppp[sg_owin]
 plot(originSG_ppp, legend = FALSE)
 ```
 
-kde
+Time to calculate the density of the origin points
 
 ```{r}
 kde_originSG_bw <- density(originSG_ppp,
                               sigma=bw.diggle,
                               edge=TRUE,
                             kernel="gaussian") 
+kde_originTMP_bw <- density(originTMP_ppp,
+                              sigma=bw.diggle,
+                              edge=TRUE,
+                            kernel="gaussian")
+kde_originJRE_bw <- density(originJRE_ppp,
+                              sigma=bw.diggle,
+                              edge=TRUE,
+                            kernel="gaussian")
+kde_originRCH_bw <- density(originRCH_ppp,
+                              sigma=bw.diggle,
+                              edge=TRUE,
+                            kernel="gaussian")
+kde_originWLD_bw <- density(originWLD_ppp,
+                              sigma=bw.diggle,
+                              edge=TRUE,
+                            kernel="gaussian")
+
 ```
+### 8.1.3) Initial plots of the KDE graph
 
 ```{r}
 plot(kde_originSG_bw)
 ```
 
-rescale
+```{r}
+plot(kde_originTMP_bw)
+```
 
+```{r}
+plot(kde_originJRE_bw)
+```
+
+```{r}
+plot(kde_originRCH_bw)
+```
+
+```{r}
+plot(kde_originWLD_bw)
+```
+
+### 8.1.4) Rescaling the KDE graph
+
+We'll need to rescale into km to aid visualisation
 ```{r}
 originSG_ppp_rescale <- rescale(originSG_ppp, 1000, "km")
+
+originTMP_ppp_rescale <- rescale(originTMP_ppp, 1000, "km")
+originJRE_ppp_rescale <- rescale(originJRE_ppp, 1000, "km")
+originRCH_ppp_rescale <- rescale(originRCH_ppp, 1000, "km")
+originWLD_ppp_rescale <- rescale(originWLD_ppp, 1000, "km")
 ```
+
 
 ```{r}
-bw <- bw.diggle(originSG_ppp)
-bw
+bw_sg <- bw.diggle(originSG_ppp)
+bw_sg
+bw_tmp <- bw.diggle(originTMP_ppp)
+bw_tmp
+bw_jre <- bw.diggle(originJRE_ppp)
+bw_jre
+bw_rch <- bw.diggle(originRCH_ppp)
+bw_rch
+bw_wld <- bw.diggle(originWLD_ppp)
+bw_wld
 ```
+### 8.1.5) Recalculating the density and replotting the KDE graph.
 
-replot
-
+##### Using bw.diggle method to calculate bandwidth
 ```{r}
 kde_originSG_bw <- density(originSG_ppp_rescale,
-                            sigma=bw,
+                            sigma=bw_sg,
                             edge=TRUE,
                             kernel="gaussian") 
 plot(kde_originSG_bw)
 ```
 
-!!! adaptive
-
 ```{r}
-kde_originSG_adaptive <- adaptive.density(originSG_ppp_rescale, method="kernel")
-plot(kde_originSG_adaptive)
+kde_originTMP_bw <- density(originTMP_ppp_rescale,
+                            sigma=bw_tmp,
+                            edge=TRUE,
+                            kernel="gaussian")
+plot(kde_originTMP_bw)
 ```
 
-convert to grid object
+```{r}
+kde_originJRE_bw <- density(originJRE_ppp_rescale,
+                            sigma=bw_jre,
+                            edge=TRUE,
+                            kernel="gaussian")
+plot(kde_originJRE_bw)
+
+```
+
+```{r}
+kde_originRCH_bw <- density(originRCH_ppp_rescale,
+                            sigma=bw_rch,
+                            edge=TRUE,
+                            kernel="gaussian")
+plot(kde_originRCH_bw)
+```
+
+```{r}
+kde_originWLD_bw <- density(originWLD_ppp_rescale,
+                            sigma=bw_wld,
+                            edge=TRUE,
+                            kernel="gaussian")
+plot(kde_originWLD_bw)
+```
+
+
+### 8.1.6) Using fixed bandwidth method
+
+```{r}
+kde_originTMP_bw <- density(originTMP_ppp_rescale,
+                            sigma=0.3,
+                            edge=TRUE,
+                            kernel="gaussian")
+plot(kde_originTMP_bw)
+```
+
+```{r}
+kde_originJRE_bw <- density(originJRE_ppp_rescale,
+                            sigma=0.3,
+                            edge=TRUE,
+                            kernel="gaussian")
+plot(kde_originJRE_bw)
+
+```
+
+```{r}
+kde_originRCH_bw <- density(originRCH_ppp_rescale,
+                            sigma=0.3,
+                            edge=TRUE,
+                            kernel="gaussian")
+plot(kde_originRCH_bw)
+```
+
+```{r}
+kde_originWLD_bw <- density(originWLD_ppp_rescale,
+                            sigma=0.3,
+                            edge=TRUE,
+                            kernel="gaussian")
+plot(kde_originWLD_bw)
+```
+
+### 8.2) Insight from calculating KDE:
+
+The kernel density estimation (KDE) is a non-parametric way to estimate the probability density function of a random variable. It is a fundamental data smoothing problem where inferences about the population are made, based on a finite data sample. In this case, we are using KDE to estimate the density of the origin points of the grab trips in the different regions of Singapore.
+
+In the initial KDE graph, we can see that the density of the origin points in the different regions of Singapore are quite uniform. However, we can see that the density of the origin points in the central region of Singapore is higher than the other regions. This is expected as the central region of Singapore is the most densely populated area in Singapore.
+
+However, after recalculating the KDE graph using the fixed bandwidth method, we can see that the density of the origin points in the different regions of Singapore are quite uniform. This is expected as the different regions of Singapore are quite uniform in terms of population density.
+
+
+### 8.3) Converting overall KDE output into raster
 
 ```{r}
 gridded_kde_originSG_bw <- as.SpatialGridDataFrame.im(kde_originSG_bw)
@@ -511,7 +777,6 @@ raster_kde_originSG_bw <- raster(gridded_kde_originSG_bw)
 
 ```{r}
 raster_kde_originSG_bw
-
 ```
 
 Assigning projection systems
@@ -529,7 +794,7 @@ tm_shape(raster_kde_originSG_bw) +
   tm_layout(legend.position = c("right", "bottom"), frame = FALSE)
 ```
 
-set tmap mode to view mode
+set tmap mode to plot mode
 
 ```{r}
 tmap_mode("plot")
@@ -541,27 +806,8 @@ tm_shape(raster_kde_originSG_bw) +
   tm_layout(legend.position = c("right", "bottom"), frame = FALSE)
 ```
 
-use tm_shape to plot roads\['name'\]
 
-```{r}
-tm_shape(roads['name'])+
-  tm_lines(col = "black", lwd = 0.5)+
-  tm_shape(raster_kde_originSG_bw) + 
-  tm_raster("v") +
-  tm_layout(legend.position = c("right", "bottom"), frame = FALSE)
-```
-
-# overlay the raster_kde_originSG_bw below roads\['name'\] to show the kernel density on the roads
-
-```{r}
-tm_shape(roads['name'])+
-  tm_lines(col = "black", lwd = 0.5, alpha = 0.3)+
-  tm_shape(raster_kde_originSG_bw) + 
-  tm_raster("v") +
-  tm_layout(legend.position = c("right", "bottom"), frame = FALSE)
-```
-
-TNKDE leggo
+## 9) Network Kernel Density Estimation (NKDE) for the 4 towns
 
 ```{r}
 str(roads)
@@ -570,60 +816,39 @@ str(roads)
 ```{r}
 st_crs(origin_sf)
 ```
-
+### 9.1) Setting up the variables 
 
 ```{r}
-pg <- mpsz %>%
-  filter(PLN_AREA_N == "PUNGGOL")
-tm <- mpsz %>%
-  filter(PLN_AREA_N == "TAMPINES")
-ck <- mpsz %>%
-  filter(PLN_AREA_N == "CHOA CHU KANG")
-jw <- mpsz %>%
-  filter(PLN_AREA_N == "JURONG WEST")
+road_tmp_ls = st_cast(road_tmp, "LINESTRING")
+road_jre_ls = st_cast(road_jre, "LINESTRING")
+road_rch_ls = st_cast(road_rch, "LINESTRING")
+road_wld_ls = st_cast(road_wld, "LINESTRING")
+```
+The line distances is set to 200m and the minimum distance is set to 50m. This relates to the real life scenario where a person wanting to board a Grab will try to book the ride within the area. 
+```{r}
+lixels_tmp <- lixelize_lines(road_tmp_ls, 200, mindist = 50)
+lixels_jre <- lixelize_lines(road_jre_ls, 200, mindist = 50)
+lixels_rch <- lixelize_lines(road_rch_ls, 200, mindist = 50)
+lixels_wld <- lixelize_lines(road_wld_ls, 200, mindist = 50)
 ```
 
+
 ```{r}
-road_pg = st_intersection(roads, pg)
-road_tm = st_intersection(roads, tm)
-road_ck = st_intersection(roads, ck)
-road_jw = st_intersection(roads, jw)
+samples_tmp <- lines_center(lixels_tmp)
+samples_jre <- lines_center(lixels_jre)
+samples_rch <- lines_center(lixels_rch)
+samples_wld <- lines_center(lixels_wld)
 ```
+### 9.2) Getting the density
+
+We will be using the nkde function from the spatstat package to get the density of the origin points in the different regions of Singapore.
+
 
 ```{r}
-origin_pg = st_intersection(origin_sf, pg)
-origin_tm = st_intersection(origin_sf, tm)
-origin_ck = st_intersection(origin_sf, ck)
-origin_jw = st_intersection(origin_sf, jw)
-```
-
-```{r}
-road_pg_ls = st_cast(road_pg, "LINESTRING")
-road_tm_ls = st_cast(road_tm, "LINESTRING")
-road_ck_ls = st_cast(road_ck, "LINESTRING")
-road_jw_ls = st_cast(road_jw, "LINESTRING")
-```
-
-```{r}
-lixels_pg <- lixelize_lines(road_pg_ls, 200, mindist = 50)
-lixels_tm <- lixelize_lines(road_tm_ls, 200, mindist = 50)
-lixels_ck <- lixelize_lines(road_ck_ls, 200, mindist = 50)
-lixels_jw <- lixelize_lines(road_jw_ls, 200, mindist = 50)
-
-```
-
-```{r}
-samples_pg <- lines_center(lixels_pg)
-samples_tm <- lines_center(lixels_tm)
-samples_ck <- lines_center(lixels_ck)
-samples_jw <- lines_center(lixels_jw)
-```
-
-```{r}
-densities_pg <- nkde(road_pg_ls['name'], 
-                  events = origin_pg,
-                  w = rep(1,nrow(origin_pg)),
-                  samples = samples_pg,
+densities_tmp <- nkde(road_tmp_ls['name'], 
+                  events = origin_tmp,
+                  w = rep(1,nrow(origin_tmp)),
+                  samples = samples_tmp,
                   kernel_name = "quartic",
                   bw = 200, 
                   div= "bw", 
@@ -638,10 +863,10 @@ densities_pg <- nkde(road_pg_ls['name'],
 ```
 
 ```{r}
-densities_tm <- nkde(road_tm_ls['name'], 
-                  events = origin_tm,
-                  w = rep(1,nrow(origin_tm)),
-                  samples = samples_tm,
+densities_jre <- nkde(road_jre_ls['name'], 
+                  events = origin_jre,
+                  w = rep(1,nrow(origin_jre)),
+                  samples = samples_jre,
                   kernel_name = "quartic",
                   bw = 200, 
                   div= "bw", 
@@ -656,10 +881,10 @@ densities_tm <- nkde(road_tm_ls['name'],
 ```
 
 ```{r}
-densities_ck <- nkde(road_ck_ls['name'], 
-                  events = origin_ck,
-                  w = rep(1,nrow(origin_ck)),
-                  samples = samples_ck,
+densities_rch <- nkde(road_rch_ls['name'], 
+                  events = origin_rch,
+                  w = rep(1,nrow(origin_rch)),
+                  samples = samples_rch,
                   kernel_name = "quartic",
                   bw = 200, 
                   div= "bw", 
@@ -674,10 +899,10 @@ densities_ck <- nkde(road_ck_ls['name'],
 ```
 
 ```{r}
-densities_jw <- nkde(road_jw_ls['name'], 
-                  events = origin_jw,
-                  w = rep(1,nrow(origin_jw)),
-                  samples = samples_jw,
+densities_wld <- nkde(road_wld_ls['name'], 
+                  events = origin_wld,
+                  w = rep(1,nrow(origin_wld)),
+                  samples = samples_wld,
                   kernel_name = "quartic",
                   bw = 200, 
                   div= "bw", 
@@ -691,58 +916,75 @@ densities_jw <- nkde(road_jw_ls['name'],
                   verbose = FALSE)
 ```
 
+
+
 ```{r}
-samples_pg$density <- densities_pg
-lixels_pg$density <- densities_pg
-samples_tm$density <- densities_tm
-lixels_tm$density <- densities_tm
-samples_ck$density <- densities_ck
-lixels_ck$density <- densities_ck
-samples_jw$density <- densities_jw
-lixels_jw$density <- densities_jw
+samples_tmp$density <- densities_tmp
+lixels_tmp$density <- densities_tmp
+samples_jre$density <- densities_jre
+lixels_jre$density <- densities_jre
+samples_rch$density <- densities_rch
+lixels_rch$density <- densities_rch
+samples_wld$density <- densities_wld
+lixels_wld$density <- densities_wld
 ```
+
+Similar to KDE, we'll need to rescale the density to aid visualisation
 
 ```{r}
 # rescaling to help the mapping
 # !!! do not run more than once. 
-samples_pg$density <- samples_pg$density*1000
-lixels_pg$density <- lixels_pg$density*1000
-samples_tm$density <- samples_tm$density*1000
-lixels_tm$density <- lixels_tm$density*1000
-samples_ck$density <- samples_ck$density*1000
-lixels_ck$density <- lixels_ck$density*1000
-samples_jw$density <- samples_jw$density*1000
-lixels_jw$density <- lixels_jw$density*1000
+
+samples_tmp$density <- samples_tmp$density*1000
+lixels_tmp$density <- lixels_tmp$density*1000
+samples_jre$density <- samples_jre$density*1000
+lixels_jre$density <- lixels_jre$density*1000
+samples_rch$density <- samples_rch$density*1000
+lixels_rch$density <- lixels_rch$density*1000
+samples_wld$density <- samples_wld$density*1000
+lixels_wld$density <- lixels_wld$density*1000
 ```
+### 9.3) Visualising the density
 
 ```{r}
-tmap_mode('view')
-tm_shape(lixels_pg)+
-  tm_lines(col="density")+
-tm_shape(origin_pg)+
-  tm_dots(alpha = 0.5)
-```
-
-```{r}
-tm_shape(lixels_tm)+
+tm_shape(lixels_tmp)+
   tm_lines(col="density",lwd=5)+
-tm_shape(origin_tm)+
+tm_shape(origin_tmp)+
   tm_dots(alpha = 0.3)
 ```
 
 ```{r}
-tm_shape(lixels_ck)+
-  tm_lines(col="density", lwd = 4)+
-tm_shape(origin_ck)+
+tm_shape(lixels_jre)+
+  tm_lines(col="density",lwd=5)+
+tm_shape(origin_jre)+
   tm_dots(alpha = 0.3)
 ```
 
 ```{r}
-tm_shape(lixels_jw)+
-  tm_lines(col="density", lwd = 4)+
-tm_shape(origin_jw)+
+tm_shape(lixels_rch)+
+  tm_lines(col="density",lwd=5)+
+tm_shape(origin_rch)+
   tm_dots(alpha = 0.3)
 ```
 
 ```{r}
+tm_shape(lixels_wld)+
+  tm_lines(col="density",lwd=5)+
+tm_shape(origin_wld)+
+  tm_dots(alpha = 0.3)
 ```
+
+
+### 9.4) Conclusion 
+
+Similar to KDE, it can be seen that the density of the origin points in the different regions of Singapore are quite uniform. This is expected as the different regions of Singapore are quite uniform in terms of population density.
+
+However, the central regions of Singapore have a higher density of origin points. This is expected as the central region of Singapore is the most densely populated area in Singapore.
+
+For woodlands, the density is saturated in 3 major streets. Tihs can be due to the fact that woodlands is a residential area and the streets are the main roads to the residential areas. Moreover, since it's in the south of woodlands, it can mean that the area is closer to the central of Singapore. Thus, it is expected to have a higher densitiy. 
+
+For Tampines, the density is pretty sparsed. The highest density street is towards the east of Tampines. This could be an indicative sign where most of the Grab trips are going towards the Airport or ECP or TPE.
+
+For Jurong East, the density is pretty sparsed. The highest density street is towards the south of Jurong East. This could be an indicative sign where most of the Grab trips are going towards the north-west of Singapore. Contrary to Woodlands, it seems as if more trips are heading outwards of the central region of Singapore.  
+
+For Rochor, the density becomes very saturated along the 3 intersections. This could be due to the fact that Rochor is a commercial area and the streets are the main roads to the commercial areas. Moreover, since it's in the central of Singapore, it is expected to have a higher density. However, if the majority of the density lies along the same vacinity, it might cause jams and traffic congestion. Therefore, it should be taken into consideration for future urban planning.
