@@ -1,5 +1,5 @@
 ---
-title: "Hands-on Exercise 6 - Global Measures of Spatial Autocorrelation & Local Measures of Spatial Autocorrelation"
+title: "Hands-on Exercise 5 - Global Measures of Spatial Autocorrelation & Local Measures of Spatial Autocorrelation"
 format:
   html:
     code-fold: true
@@ -15,7 +15,6 @@ date: "`r Sys.Date()`"
 1 Getting Started
 
 1.1 The analytical question
-
 
 1.1 The Study Area and Data
 
