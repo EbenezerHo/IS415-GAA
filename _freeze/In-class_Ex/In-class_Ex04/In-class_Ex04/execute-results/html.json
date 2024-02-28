@@ -1,0 +1,14 @@
+{
+  "hash": "167cdea926b8dc8836df632bd92ff29e",
+  "result": {
+    "markdown": "---\ntitle: \"In class Exercise 04\"\nexecute: \n  warning: false # show warnings\n  eval: true # evaluate the code\n  echo: true # show the code\n  freeze: true\ndate: \"2024-02-28\"\n---\n\n\n# getting started\n\n\n::: {.cell}\n\n```{.r .cell-code}\npacman::p_load(sf, spdep, tmap, tidyverse, knitr, GWmodel)\n```\n:::\n\n::: {.cell}\n\n```{.r .cell-code}\nhunan <- st_read(dsn = \"data/geospatial\", \n                 layer = \"Hunan\")\n```\n\n::: {.cell-output .cell-output-stdout}\n```\nReading layer `Hunan' from data source \n  `C:\\EbenezerHo\\IS415-GAA\\In-class_Ex\\In-class_Ex04\\data\\geospatial' \n  using driver `ESRI Shapefile'\nSimple feature collection with 88 features and 7 fields\nGeometry type: POLYGON\nDimension:     XY\nBounding box:  xmin: 108.7831 ymin: 24.6342 xmax: 114.2544 ymax: 30.12812\nGeodetic CRS:  WGS 84\n```\n:::\n:::\n\n::: {.cell}\n\n```{.r .cell-code}\nhunan2012 <- read_csv(\"data/aspatial/Hunan_2012.csv\")\n```\n:::\n\n::: {.cell}\n\n```{.r .cell-code}\nhunan <- left_join(hunan,hunan2012)%>% select(1:4, 7, 15)\n```\n:::\n\n::: {.cell}\n\n```{.r .cell-code}\n# GWmodel cannot accept sf. need to be in spatialdf or polygon df format. sp object class\nhunan_sp <- hunan %>% as_Spatial()\n```\n:::\n\n::: {.cell}\n\n```{.r .cell-code}\ngwstat <- gwss(data = hunan_sp, \n               vars = \"GDPPC\",\n               bw = 6,\n               kernel = \"bisquare\",\n               adaptive = TRUE,\n               longlat = T)\n# adaptive means fixed numbers of neighbours.\n# since adaptive is true, need to declare bw = 6 (number of neighbours)\n# if adaptive is false, bw = 6 means 6km (di)\n```\n:::\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

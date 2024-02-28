@@ -1,0 +1,14 @@
+{
+  "hash": "01e8ad3670a34a333828766de1869ec5",
+  "result": {
+    "markdown": "---\ntitle: \"In class Exercise 02\"\nexecute: \n  warning: false # show warnings\n  eval: true # evaluate the code\n  echo: true # show the code\n  freeze: true\ndate: \"2024-02-28\"\n---\n\n\n# Getting Started :D\n\n## Loading R packages\n\narrow used for reading and writing parquet file. lubridate used for date and time\n\n\n::: {.cell}\n\n```{.r .cell-code}\npacman:: p_load (arrow, lubridate, tidyverse, tmap, sf)\n```\n:::\n\n\n## Reading the data\n\n\n::: {.cell}\n\n```{.r .cell-code}\ndf <- read_parquet(\"data/GrabPosisi/part-00000-8bbff892-97d2-4011-9961-703e38972569.c000.snappy.parquet\")\n```\n:::\n\n\n## convert the data type of pingtimestamp from character to date-time\n\n\n::: {.cell}\n\n```{.r .cell-code}\ndf$pingtimestamp <- as_datetime(df$pingtimestamp)\n# df is to say that it is froma dataframe. then $pingtimestamp is the column name\n# reassign back data frame with the <-\n```\n:::\n\n\n## extracting trip starting locations\n\n### 1) extracting trips' origin location\n\n### 2) derive three new columns (i.e. variables) for weekday, starting hour and day of the month\n\n### 3) name the output tibble data.frame orgin_df\n\n\n::: {.cell}\n\n```{.r .cell-code}\norigin_df <- df %>%  \n  group_by(trj_id) %>% # group by trip id\n  arrange(pingtimestamp) %>% # arrange by pingtimestamp to sort the data\n  filter(row_number() == 1) %>% # get the first row of all the trip id\n  mutate(weekday = wday(pingtimestamp, label = TRUE, abbr = TRUE), # get the day of the week\n         start_hr = factor(hour(pingtimestamp)),# use factor to get ordinal data\n         day= factor(day(pingtimestamp)))\n```\n:::\n\n\n## extracting trip ending locations\n\n\n::: {.cell}\n\n```{.r .cell-code}\ndestination_df <- df %>%  \n  group_by(trj_id) %>% # group by trip id\n  arrange(desc(pingtimestamp)) %>%  # arrange descending by pingtimestamp to sort the data\n  filter(row_number() == 1) %>% # get the last row of all the trip id\n  mutate(weekday = wday(pingtimestamp, label = TRUE, abbr = TRUE), # get the day of the week\n         end_hr = factor(hour(pingtimestamp)),# use factor to get ordinal data\n         day= factor(day(pingtimestamp)))\n```\n:::\n\n::: {.cell}\n\n:::\n\n\n### import the data from rds\n\n\n::: {.cell}\n\n```{.r .cell-code}\n# if working on the next day, just run this read since the data is already prepped\norigin_df <- read_rds(\"data/rds/origin_df.rds\") \ndestination_df <- read_rds(\"data/rds/destination_df.rds\")\n```\n:::\n",
+    "supporting": [],
+    "filters": [
+      "rmarkdown/pagebreak.lua"
+    ],
+    "includes": {},
+    "engineDependencies": {},
+    "preserve": {},
+    "postProcess": true
+  }
+}

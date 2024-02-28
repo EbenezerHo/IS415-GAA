@@ -4,6 +4,7 @@ execute:
   warning: false # show warnings
   eval: true # evaluate the code
   echo: true # show the code
+  freeze: true
 date: "`r Sys.Date()`"
 ---
 
@@ -17,7 +18,7 @@ In class Exercise 3! part 1
 pacman::p_load(maptools, sf, raster, spatstat, tmap, tidyverse)
 ```
 
-## import data 
+## import data
 
 ```{r}
 childcare_sf <- st_read("data/geospatial/ChildCareServices.geojson") %>% 
@@ -26,7 +27,7 @@ mpsz_sf <- st_read(dsn = "data/geospatial",
                 layer = "MP14_SUBZONE_WEB_PL")
 ```
 
-## creasting coastal outline 
+## creasting coastal outline
 
 ```{r}
 sg_sf <- mpsz_sf %>%
@@ -36,9 +37,10 @@ sg_sf <- mpsz_sf %>%
 ```{r}
 plot(sg_sf)
 ```
-hands on ex: spatial > sp data > ppp >
 
-now! use sf. take directly from sf object to transform to ppp.  
+hands on ex: spatial \> sp data \> ppp \>
+
+now! use sf. take directly from sf object to transform to ppp.
 
 ```{r}
 childcare_ppp <- as.ppp(childcare_sf)
@@ -48,13 +50,14 @@ childcare_ppp <- as.ppp(childcare_sf)
 summary(childcare_ppp)
 ```
 
-## remove duplicates 
+## remove duplicates
 
 ! especially important if using postal code
 
 ```{r}
 any(duplicated(childcare_ppp))
 ```
+
 ```{r}
 sg_owin <- as.owin(sg_sf)
 ```
@@ -66,6 +69,7 @@ summary(sg_owin)
 ```{r}
 plot(sg_owin)
 ```
+
 ```{r}
 pg = mpsz_sf %>% filter(PLN_AREA_N == "PUNGGOL")
 tm = mpsz_sf %>% filter(PLN_AREA_N == "TAMPINES")

@@ -1,3 +1,18 @@
+---
+title: "Hands-on Exercise 02"
+format:
+  html:
+    code-fold: true
+    code-summary: "Show the code"
+
+execute: 
+  eval: true
+  echo: true
+  warning: false
+  freeze: true
+date: "`r Sys.Date()`"
+---
+
 Hands on Exercise 02
 
 Hello this is my hands on exercise 02 i try my best :3

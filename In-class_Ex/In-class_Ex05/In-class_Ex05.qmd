@@ -9,14 +9,13 @@ execute:
   eval: true
   echo: true
   warning: false
+  freeze: true
 date: "`r Sys.Date()`"
 ---
-
 
 ```{r}
 pacman::p_load(sf, tmap, tidyverse, sfdep)
 ```
-
 
 ```{r}
 #| code-fold: true
@@ -25,12 +24,13 @@ pacman::p_load(sf, tmap, tidyverse, sfdep)
 hunan <- st_read(dsn = "data/geospatial", 
                  layer = "Hunan")
 ```
-:::callout note
-hello 
+
+::: callout-note hello
 
 ```{r}
 hunan2012 <- read_csv("data/aspatial/Hunan_2012.csv")
 ```
+
 ```{r}
 hunanGDPPC <- left_join(hunan,hunan2012) %>%
   select(1:4, 7, 15)
@@ -64,16 +64,15 @@ wm_q <- hunanGDPPC %>%
          .before = 1)
 ```
 
-moran I 
+moran I
 
 ```{r}
 global_moran_test(wm_q$GDPPC,
                   wm_q$nb,
                   wm_q$wt)
 ```
-now, since people will question your wj
-we will use permutate to test the significance of the moran I
 
+now, since people will question your wj we will use permutate to test the significance of the moran I
 
 ```{r}
 
@@ -82,6 +81,5 @@ global_moran_perm(wm_q$GDPPC,
                   wm_q$wt,
                  nsim = 99)
 ```
-:::callout note
-Te number of simulation is always equal to nsim +! this mean in nsim = 99 this mean 100 simulations will be 
 
+:::callout note Te number of simulation is always equal to nsim +! this mean in nsim = 99 this mean 100 simulations will be

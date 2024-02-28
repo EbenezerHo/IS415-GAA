@@ -4,6 +4,7 @@ execute:
   warning: false # show warnings
   eval: true # evaluate the code
   echo: true # show the code
+  freeze: true
 date: "`r Sys.Date()`"
 ---
 
@@ -13,6 +14,7 @@ date: "`r Sys.Date()`"
 pacman::p_load(sf, spdep, tmap, tidyverse, knitr, GWmodel)
 
 ```
+
 ```{r}
 hunan <- st_read(dsn = "data/geospatial", 
                  layer = "Hunan")
@@ -21,9 +23,11 @@ hunan <- st_read(dsn = "data/geospatial",
 ```{r}
 hunan2012 <- read_csv("data/aspatial/Hunan_2012.csv")
 ```
+
 ```{r}
 hunan <- left_join(hunan,hunan2012)%>% select(1:4, 7, 15)
 ```
+
 ```{r}
 # GWmodel cannot accept sf. need to be in spatialdf or polygon df format. sp object class
 hunan_sp <- hunan %>% as_Spatial()
@@ -40,9 +44,3 @@ gwstat <- gwss(data = hunan_sp,
 # since adaptive is true, need to declare bw = 6 (number of neighbours)
 # if adaptive is false, bw = 6 means 6km (di)
 ```
-
-
-
-
-
-

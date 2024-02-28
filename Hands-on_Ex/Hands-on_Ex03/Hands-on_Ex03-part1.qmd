@@ -4,6 +4,8 @@ execute:
   warning: false # show warnings
   eval: true # evaluate the code
   echo: true # show the code
+  freeze: true
+
 date: "`r Sys.Date()`"
 ---
 

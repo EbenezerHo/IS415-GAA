@@ -1,0 +1,303 @@
+---
+title: "Take-home Exercise 02"
+format:
+  html:
+    code-fold: true
+    code-summary: "Show the code"
+
+execute: 
+  eval: true
+  echo: true
+  warning: false
+  freeze: true
+date: "`r Sys.Date()`"
+---
+
+```{r}
+pacman::p_load(sf, tmap, tidyverse, lubridate, dplyr, sfdep)
+```
+
+## Load the data
+
+```{r}
+#| eval: false
+dengue <- read_csv("data/aspatial/Dengue_Daily.csv")
+```
+
+mutate to rename onset date filter to 台南市
+
+onset date -\> when you kena dengue, when your first symptom appear
+
+rename dengue's first column to onset date
+
+```{r}
+#| eval: false
+head(dengue)
+```
+
+```{r}
+#| eval: false
+glimpse(dengue)
+```
+
+```{r}
+#| eval: false
+unique(dengue$居住縣市)
+
+```
+
+```{r}
+#| eval: false
+dengue <- dengue %>%
+  filter(居住縣市 == "台南市") %>%
+  filter(!(最小統計區中心點X == "None") | !(最小統計區中心點Y == "None"))  %>% 
+  filter(發病日 >= "2023-07-30" & 發病日 <= "2023-12-16")
+```
+
+```{r}
+#| eval: false
+df <- dengue %>%
+  select("發病日", "最小統計區中心點X", "最小統計區中心點Y")
+```
+
+https://stackoverflow.com/questions/46014332/using-mutate-in-r-to-rename-items-in-a-column
+
+```{r}
+#| eval: false
+names(df) <- c("onset-date", "x-coordinate","y-coordinate")
+```
+
+```{r}
+#| eval: false
+tainan <- st_read(dsn = "data/geospatial", 
+                 layer = "TAINAN_VILLAGE")
+```
+
+```{r}
+#| eval: false
+glimpse(tainan)
+```
+
+```{r}
+#| eval: false
+st_crs(tainan)
+```
+
+```{r}
+#| eval: false
+length(which(st_is_valid(tainan) == FALSE))
+```
+
+```{r}
+#| eval: false
+dengue_sf <- st_as_sf(df, 
+                      coords = c("x-coordinate","y-coordinate"),
+                      crs = 3824)
+```
+
+```{r}
+#| eval: false
+villages <- c("D01", "D02", "D04", "D06", "D07", "D08", "D32", "D39")
+```
+
+```{r}
+#| eval: false
+tainan_vil <- tainan %>%
+  filter(TOWNID %in% villages)
+```
+
+
+```{r}
+#| eval: false
+overall_dengue <- st_intersection(dengue_sf, tainan_vil)
+```
+
+save overall dengue in rds
+
+```{r}
+#| eval: false
+saveRDS(overall_dengue, "data/rds/overall_dengue.rds")
+saveRDS(tainan_vil, "data/rds/tainan_vil.rds")
+```
+
+```{r}
+overall_dengue <- readRDS("data/rds/overall_dengue.rds")
+tainan_vil <- readRDS("data/rds/tainan_vil.rds")
+```
+
+```{r}
+plot(st_geometry(tainan_vil), col = "grey")
+```
+
+
+
+https://lubridate.tidyverse.org/reference/week.html
+
+add a column in overall_dengue to show the week of the year based on onset-date using epiweek
+
+use epi week to start on sunday instead of isoweek which starts on monday
+
+```{r}
+#| eval: false
+overall_dengue <- overall_dengue %>%
+  mutate(week = lubridate::epiweek(onset.date))
+```
+
+```{r}
+#| eval: false
+overall_dengue <- overall_dengue %>% select(onset.date,VILLENG, TOWNID, geometry,week)
+```
+
+
+```{r}
+plot(st_geometry(overall_dengue), col = "grey")
+plot(st_geometry(tainan_vil), add = TRUE)
+```
+
+```{r}
+#| eval: false
+dengue_count <- st_join(tainan_vil, overall_dengue, join =st_contains ) %>%
+  group_by(TOWNID.x, week) %>%
+  summarise(cases = n())
+```
+
+```{r}
+#| eval: false
+head(dengue_count)
+```
+save overall_dengue into rds 
+
+```{r}
+#| eval: false
+saveRDS(dengue_count, "data/rds/dengue_count.rds")
+saveRDS(overall_dengue, "data/rds/overall_dengue.rds")
+```
+
+```{r}
+dengue_count <- readRDS("data/rds/dengue_count.rds")
+overall_dengue <- readRDS("data/rds/overall_dengue.rds")
+```
+
+
+```{r}
+tm_shape(dengue_count) + 
+  tm_polygons("cases") + 
+  tm_layout(main.title = "Number of dengue cases by Village", 
+            main.title.position = "center",
+            main.title.size = 1.2,
+            legend.height = 0.45,
+            legend.width=0.35,
+            frame = TRUE) + 
+  tm_borders(alpha=0.5)
+```
+
+plot a bar chart to show the distribuition of dengue cases in each village
+
+```{r}
+ggplot(dengue_count, aes(x = week, y = cases, fill = TOWNID.x)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(title = "Dengue cases in Tainan",
+       x = "Week",
+       y = "Number of cases")
+```
+From the chart above, we can notice that village D32 generally has lesser amount of dengue cases compared to the rest of the villages. Meanwhile, village D06 came up as an oddity where it was relatively low then spiked up in week 35-40. 
+
+
+computing spatial weights
+
+```{r}
+dengue_agg <- dengue_count %>% select(week, cases, geometry)
+```
+
+
+```{r}
+wm_q <- dengue_agg %>% mutate(nb = st_contiguity(geometry),
+                                        wt = st_weights(nb, 
+                                                        style = "W"),
+                                        .before=1)
+```
+
+```{r}
+wm_q
+```
+Performing Global Moran’s I test
+```{r}
+global_moran_test(wm_q$cases,
+                  wm_q$nb,
+                  wm_q$wt)
+```
+
+ Performing Global Moran’s I permutation test
+ 
+```{r}
+set.seed(1234)
+```
+
+```{r}
+global_moran_perm(wm_q$cases,
+                  wm_q$nb,
+                  wm_q$wt,
+                  nsim=49)
+```
+ Local Spatial Autocorrelation Analysis
+ 
+ 
+computing lisa 
+
+```{r}
+lisa <- wm_q %>% mutate(local_moran = local_moran(
+  cases, nb, wt, nsim = 49),
+  .before = 1) %>%
+  unnest(local_moran)
+```
+
+```{r}
+tm_shape(lisa) + 
+  tm_fill("ii") + 
+  tm_borders(alpha=0.5) +
+  tm_layout(main.title = "Local Moran's I of Total Cases", 
+            main.title.size = 0.8)
+```
+
+
+```{r}
+tm_shape(lisa) +
+  tm_fill("p_ii_sim",
+          breaks = c(0, 0.001, 0.01, 0.05, 1),
+          labels = c("0.001", "0.01", "0.05", "Not significant")) +
+  tm_borders(alpha = 0.5) +
+  tm_layout (main.title = "p-value of local Moran's I",
+             main.title.size = 0.8)
+```
+```{r}
+local_mapi <- tm_shape(lisa) + 
+  tm_fill("ii") + 
+  tm_borders(alpha=0.5) +
+  tm_layout(main.title = "Local Moran's I of Total Cases", 
+            main.title.size = 0.8)
+
+local_mapp <- tm_shape(lisa) +
+  tm_fill("p_ii_sim",
+          breaks = c(0, 0.001, 0.01, 0.05, 1),
+          labels = c("0.001", "0.01", "0.05", "Not significant")) +
+  tm_borders(alpha = 0.5) +
+  tm_layout (main.title = "p-value of local Moran's I",
+             main.title.size = 0.8)
+
+tmap_arrange(local_mapi, local_mapp, ncol = 2)
+```
+
+
+```{r}
+lisa_sig <- lisa %>% filter(p_ii <0.05)
+
+tm_shape(lisa) + 
+  tm_polygons() +
+  tm_borders(alpha = 0.5) +
+  tm_shape(lisa_sig) +
+  tm_fill("mean") +
+  tm_borders(alpha=0.4)
+```
+

@@ -4,6 +4,7 @@ execute:
   warning: false # show warnings
   eval: true # evaluate the code
   echo: true # show the code
+  freeze: true
 date: "`r Sys.Date()`"
 ---
 
@@ -18,12 +19,13 @@ pacman::p_load(maptools, sf, raster, spatstat,
                tmap, tidyverse, spNetwork, classInt, virdis)
 ```
 
-## import data 
+## import data
 
 ```{r}
 network <- st_read(dsn="data/geospatial", layer="Punggol_St")
 childcare <- st_read(dsn="data/geospatial", layer="Punggol_CC")
 ```
+
 tmap mode to plot
 
 ```{r}
@@ -33,24 +35,29 @@ tm_shape(childcare) + tm_dots()+
 tmap_mode("plot")
 ```
 
-## create line segments 
+## create line segments
+
 -- mindist is half of the distance of 750. therefore 375
+
 ```{r}
 lixels <- lixelize_lines(network,750 ,mindist = 375)
 ```
 
 ## ??
+
 ```{r}
 samples <- lines_center(lixels)
 ```
 
 ## genrating line_center(lixels)
+
 ```{r}
 densities <- nkde(network, events = childcare, w = rep(1, nrow(childcare)), samples = samples, kernel_name ="quartic", bw = 300, div= "bw", method = "simple", digits = 1, tol = 1, grid_shape = c(1,1), max_depth = 8, agg = 5, sparse = TRUE, verbose = FALSE
                   )
 ```
 
 ## plot
+
 ```{r}
 samples$density <- densities
 lixels$density <- densities
