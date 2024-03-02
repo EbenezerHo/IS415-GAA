@@ -1,0 +1,52 @@
+---
+title: "Take-home Exercise 02"
+format:
+  html:
+    code-fold: true
+    code-summary: "Show the code"
+
+execute: 
+  eval: true
+  echo: true
+  warning: false
+  freeze: true
+date: "`r Sys.Date()`"
+---
+
+
+import pow.kml in data folder 
+
+```{r}
+pacman::p_load(sf, tmap, tidyverse, lubridate, dplyr)
+```
+
+```{r}
+kml <- "data/pow.kml"
+```
+read all the layers in pow.kml file
+
+```{r}
+layer_info <- st_layers(kml)
+```
+
+```{r}
+layer_info
+```
+
+
+```{r}
+# Define the layer names based on the provided information
+layer_names <- c("Mosques", "Taoist/Buddhist Temples", "Churches", "Hindu Temples", "Gurdwaras", "Synagogues", "Others", "Future")
+
+# Loop through each layer name
+for (layer_name in layer_names) {
+  # Read the layer
+  assign(layer_name, st_read(kml, layer = layer_name))
+}
+```
+
+
+```{r}
+```
+
+
