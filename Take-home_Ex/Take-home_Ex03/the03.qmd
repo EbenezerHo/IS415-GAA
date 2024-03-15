@@ -1,0 +1,320 @@
+---
+title: "Take-home Exercise 03"
+format:
+  html:
+    code-fold: true
+    code-summary: "Show the code"
+
+execute: 
+  eval: true
+  echo: true
+  warning: false
+  freeze: true
+date: "`r Sys.Date()`"
+---
+
+# 1.0 Data preparation and wrangling 
+
+```{r}
+pacman::p_load(sf, tmap, tidyverse, corrplot, spdep, ClustGeo, 
+               ggpubr, cluster, factoextra, NbClust,
+               heatmaply, psych, GGally, sp)
+```
+
+```{r}
+#| eval: false
+
+
+pci <- read_csv("data/pci_2021.csv")
+```
+
+```{r}
+vn <- st_read(dsn = "data/", 
+                   layer = "vnm_admbnda_adm1_gov_20201027")
+```
+
+```{r}
+#| eval: false
+
+glimpse(pci)
+```
+
+lets rename the columns to make them more readable
+
+```{r}
+#| eval: false
+
+pci <- pci %>% 
+  rename(`overall_index` = `Sub-Index 10: Law & Order`, 
+         `security_ind` = `Good security situation in the province (%)`,
+         `theft_ind` = `Victim of theft or break-in last year (%)`,
+         `police_ind` = `Local police handle firm's case effectively (%)`,
+         `gangster_ind` = `Pay money to gangsters groups (%)`)
+```
+
+```{r}
+#| eval: false
+
+unique(pci$Province)
+```
+
+We notice that some province names are not consistent with the map. We need to fix this.
+
+```{r}
+#| eval: false
+
+unique(vn$ADM1_EN)
+```
+
+show names that are in pci but not in vn
+
+```{r}
+#| eval: false
+
+pci %>% 
+  filter(!Province %in% vn$ADM1_EN) %>% 
+  select(Province)
+```
+
+let's replace these names in pci with the names in vn for us to be able to join the two datasets
+
+```{r}
+#| eval: false
+
+pci <- pci %>% 
+  mutate(Province = case_when(
+    Province == "BRVT" ~ "Ba Ria - Vung Tau",
+    Province == "Can Tho" ~ "Can Tho city",
+    Province == "Da Nang" ~ "Da Nang city",
+    Province == "HCMC" ~ "Ho Chi Minh city",
+    Province == "Hai Phong" ~ "Hai Phong city",
+    Province == "TT-Hue" ~ "Thua Thien Hue",
+    TRUE ~ Province
+  ))
+```
+
+lets check again
+
+```{r}
+#| eval: false
+
+pci %>% 
+  filter(!Province %in% vn$ADM1_EN) %>% 
+  select(Province)
+```
+
+Looks like we're good to go!
+
+we first need to remove the % sign in the last 4 columns of pci and convert it to integer datatype
+
+```{r}
+#| eval: false
+
+pci <- pci %>% 
+  mutate(across(ends_with("ind"), ~as.integer(str_remove(., "%"))))
+```
+
+```{r}
+#| eval: false
+
+glimpse(pci)
+```
+
+```{r}
+#| eval: false
+
+write_rds(pci, "data/rds/pci.rds")
+```
+
+```{r}
+pci <- read_rds("data/rds/pci.rds")
+```
+
+# 2.0 Clustering using SKATER method
+
+```{r}
+cluster_vars.cor = cor(pci[,3:7])
+corrplot.mixed(cluster_vars.cor,
+         lower = "ellipse", 
+               upper = "number",
+               tl.pos = "lt",
+               diag = "l",
+               tl.col = "black")
+```
+
+```{r}
+vn_pci <- vn %>% 
+  left_join(pci, by = c("ADM1_EN" = "Province"))
+```
+
+```{r}
+slt_vn <- select(vn_pci, c(ADM1_EN, overall_index, security_ind, theft_ind, police_ind, gangster_ind))
+```
+
+```{r}
+slt_vn <- st_drop_geometry(slt_vn)
+```
+
+check the datatype of vn
+
+```{r}
+vn
+```
+
+```{r}
+vn_sp <- as_Spatial(vn)
+
+```
+
+```{r}
+vn.nb <- poly2nb(vn_sp)
+summary(vn.nb)
+```
+
+```{r}
+#| fig-width: 15
+#| fig-height: 15
+
+plot(vn_sp, 
+     border=grey(.5))
+plot(vn.nb, 
+     coordinates(vn_sp), 
+     col="blue", 
+     add=TRUE)
+```
+
+```{r}
+lcosts <- nbcosts(vn.nb, slt_vn)
+```
+
+```{r}
+vn.w <- nb2listw(vn.nb, 
+                   lcosts, 
+                   style="B")
+summary(vn.w)
+```
+
+```{r}
+vn.mst <- mstree(vn.w)
+```
+
+```{r}
+class(vn.mst)
+```
+
+```{r}
+dim(vn.mst)
+```
+
+```{r}
+#| fig-width: 20
+#| fig-height: 23
+
+plot(vn_sp, border=gray(.5))
+plot.mst(vn.mst, 
+         coordinates(vn_sp), 
+         col="blue", 
+         cex.lab=0.7, 
+         cex.circles=0.005, 
+         add=TRUE)
+```
+
+```{r}
+row.names(slt_vn) <- slt_vn$"ADM1_EN"
+```
+
+```{r}
+slt_vn <- select(slt_vn, -ADM1_EN)
+```
+
+```{r}
+clust6 <- spdep::skater(edges = vn.mst[,1:2], 
+                 data = slt_vn, 
+                 method = "euclidean", 
+                 ncuts = 5)
+```
+
+```{r}
+str(clust6)
+
+```
+
+```{r}
+ccs6 <- clust6$groups
+ccs6
+```
+
+```{r}
+#| fig-width: 20
+#| fig-height: 23
+
+plot(vn_sp, border=gray(.5))
+plot(clust6, 
+     coordinates(vn_sp), 
+     cex.lab=.7,
+     groups.colors=c("red","green","blue", "brown", "pink"),
+     cex.circles=0.005, 
+     add=TRUE)
+```
+
+```{r}
+proxmat <- dist(slt_vn, method = 'euclidean')
+```
+
+```{r}
+hclust_ward <- hclust(proxmat, method = 'ward.D')
+```
+
+```{r}
+groups <- as.factor(cutree(hclust_ward, k=6))
+```
+
+```{r}
+vn_cluster <- cbind(vn, as.matrix(groups)) %>%
+  rename(`CLUSTER`=`as.matrix.groups.`)
+```
+
+```{r}
+tmap_mode("plot")
+
+```
+
+```{r}
+groups_mat <- as.matrix(clust6$groups)
+vn_spatialcluster <- cbind(vn_cluster, as.factor(groups_mat)) %>%
+  rename(`SP_CLUSTER`=`as.factor.groups_mat.`)
+qtm(vn_spatialcluster, "SP_CLUSTER")
+```
+
+```{r}
+hclust.map <- qtm(vn_cluster,
+                  "CLUSTER") + 
+  tm_borders(alpha = 0.5) 
+
+shclust.map <- qtm(vn_spatialcluster,
+                   "SP_CLUSTER") + 
+  tm_borders(alpha = 0.5) 
+
+tmap_arrange(hclust.map, shclust.map,
+             asp=NA, ncol=2)
+```
+
+# 3.0 Storyboard UI
+
+the 2 main sources that we will use to create the UI are the `shiny` and `shinydashboard` packages. The `shiny` package is used to create the UI and the `shinydashboard` package is used to create the dashboard layout.
+
+We can find information about shiny UI designing in the following link: https://shiny.rstudio.com/articles/layout-guide.html
+
+Additional resources: 1) https://shiny.posit.co/ 2) https://rstudio.github.io/cheatsheets/html/shiny.html?\_gl=1*17a3ps8*\_ga*MTAxMjM5NDEwMS4xNzA0NjM3NDA2*\_ga_2C0WZ1JHG0\*MTcxMDMxNzc1NS43LjEuMTcxMDMxNzg4OS4wLjAuMA.. 3) https://deanattali.com/blog/building-shiny-apps-tutorial/#11-using-uioutput-to-create-ui-elements-dynamically
+
+![](images/th3ui.jpg)
+
+
+As of now, there'll be 3 parameters that the user can change: 1) The number of clusters 2) The distance metric 3) The agglomeration method. This is to give the user more control over the clustering process.
+
+Things that we could potentially look into: 
+1) Adding a map to the UI that shows the clusters
+2) Adding a table that shows the provinces and their respective clusters
+3) Allow users to change the level of clustering (i.e. from province to district level)
+4) Allow users to change the variables that are used for clustering
+5) Allow users to change the color of the clusters for better visuals 
