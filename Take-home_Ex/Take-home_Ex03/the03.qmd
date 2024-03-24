@@ -13,7 +13,7 @@ execute:
 date: "`r Sys.Date()`"
 ---
 
-# 1.0 Data preparation and wrangling 
+# 1.0 Data preparation and wrangling
 
 ```{r}
 pacman::p_load(sf, tmap, tidyverse, corrplot, spdep, ClustGeo, 
@@ -234,6 +234,8 @@ clust6 <- spdep::skater(edges = vn.mst[,1:2],
                  ncuts = 5)
 ```
 
+::: call-out note We have 2 parameters that we could offer for the interactive view in shiny
+
 ```{r}
 str(clust6)
 
@@ -257,6 +259,8 @@ plot(clust6,
      add=TRUE)
 ```
 
+::: call-out note Since we are doing our individual module analysis, we need to prepare some data for the graph.
+
 ```{r}
 proxmat <- dist(slt_vn, method = 'euclidean')
 ```
@@ -273,6 +277,8 @@ groups <- as.factor(cutree(hclust_ward, k=6))
 vn_cluster <- cbind(vn, as.matrix(groups)) %>%
   rename(`CLUSTER`=`as.matrix.groups.`)
 ```
+
+::: call-out note Take note that the above 4 chunks of code might be duplicated in other modules.
 
 ```{r}
 tmap_mode("plot")
@@ -301,20 +307,54 @@ tmap_arrange(hclust.map, shclust.map,
 
 # 3.0 Storyboard UI
 
-the 2 main sources that we will use to create the UI are the `shiny` and `shinydashboard` packages. The `shiny` package is used to create the UI and the `shinydashboard` package is used to create the dashboard layout.
+## 3.1 Introduction
 
-We can find information about shiny UI designing in the following link: https://shiny.rstudio.com/articles/layout-guide.html
+The purpose of this dashboard is to provide a visual representation of the clustering of provinces in Vietnam based on the Provincial Competitiveness Index (PCI) data. The clustering is done using the SKATER method, which is a spatial clustering method that takes into account the spatial relationships between provinces.
 
-Additional resources: 1) https://shiny.posit.co/ 2) https://rstudio.github.io/cheatsheets/html/shiny.html?\_gl=1*17a3ps8*\_ga*MTAxMjM5NDEwMS4xNzA0NjM3NDA2*\_ga_2C0WZ1JHG0\*MTcxMDMxNzc1NS43LjEuMTcxMDMxNzg4OS4wLjAuMA.. 3) https://deanattali.com/blog/building-shiny-apps-tutorial/#11-using-uioutput-to-create-ui-elements-dynamically
+## 3.2 Purpose
+
+We strive to provide a user-friendly interface that allows users to interact with the data and explore the clusters in an intuitive way. The dashboard will include visualizations of the clusters on a map, as well as summary statistics of the clusters. Users will be able to change the number of clusters, the distance metric, and the agglomeration method used in the clustering process. This will aid the analysis of geographic segmentation of the provinces in Vietnam.
+
+Since we are targeting a non-technical audience, we aim to keep the dashboard simple and easy to use. The dashboard will be designed to be visually appealing and intuitive, with clear instructions on how to use it. However, jargon like "agglomeration" will be used to identify specific variable changes.
+
+## User Interface
 
 ![](images/th3ui.jpg)
 
+As of now, there'll be 3 parameters that the user can change:
 
-As of now, there'll be 3 parameters that the user can change: 1) The number of clusters 2) The distance metric 3) The agglomeration method. This is to give the user more control over the clustering process.
+1\) The number of clusters
 
-Things that we could potentially look into: 
-1) Adding a map to the UI that shows the clusters
-2) Adding a table that shows the provinces and their respective clusters
-3) Allow users to change the level of clustering (i.e. from province to district level)
-4) Allow users to change the variables that are used for clustering
-5) Allow users to change the color of the clusters for better visuals 
+2\) The distance metric
+
+3\) The agglomeration method.
+
+This is to give the user more control over the clustering process.
+
+## 3.3 Further development
+
+The 2 main sources that we will use to create the UI are the `shiny` and `shinydashboard` packages. The `shiny` package is used to create the UI and the `shinydashboard` package is used to create the dashboard layout.
+
+We can find information about shiny UI designing in the following link: https://shiny.rstudio.com/articles/layout-guide.html
+
+Additional resources:
+
+1\) https://shiny.posit.co/
+
+2\) https://rstudio.github.io/cheatsheets/html/shiny.html?\_gl=1*17a3ps8*\_ga*MTAxMjM5NDEwMS4xNzA0NjM3NDA2*\_ga_2C0WZ1JHG0\*MTcxMDMxNzc1NS43LjEuMTcxMDMxNzg4OS4wLjAuMA..
+
+3\) https://deanattali.com/blog/building-shiny-apps-tutorial/#11-using-uioutput-to-create-ui-elements-dynamically
+
+## 3.4 Features to consider
+
+Things that we could potentially look into:
+
+1\) Adding a map to the UI that shows the clusters
+
+2\) Adding a table that shows the provinces and their respective clusters
+
+3\) Allow users to change the level of clustering (i.e. from province to district level)
+
+4\) Allow users to change the variables that are used for clustering
+
+5\) Allow users to change the color of the clusters for better visuals

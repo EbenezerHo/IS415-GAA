@@ -6,7 +6,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
-<meta name="dcterms.date" content="2024-03-15">
+<meta name="dcterms.date" content="2024-03-24">
 
 <title>IS415-GAA - Take-home Exercise 03</title>
 <style>
@@ -153,6 +153,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="dropdown-item" href="../../Hands-on_Ex/Hands-on_Ex08/Hands-on_Ex08.html" rel="" target="">
  <span class="dropdown-text">Hands-on Exercise 8</span></a>
   </li>  
+        <li>
+    <a class="dropdown-item" href="../../Hands-on_Ex/Hands-on_Ex09/Hands-on_Ex09.html" rel="" target="">
+ <span class="dropdown-text">Hands-on Exercise 9</span></a>
+  </li>  
+        <li>
+    <a class="dropdown-item" href="../../Hands-on_Ex/Hands-on_Ex09/Hands-on_Ex10.html" rel="" target="">
+ <span class="dropdown-text">Hands-on Exercise 10</span></a>
+  </li>  
     </ul>
   </li>
   <li class="nav-item dropdown ">
@@ -203,6 +211,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <a class="dropdown-item" href="../../Take-Home_Ex/Take-Home_Ex02/Take-Home_Ex02.html" rel="" target="">
  <span class="dropdown-text">Take home Exercise 2</span></a>
   </li>  
+        <li>
+    <a class="dropdown-item" href="../../Take-Home_Ex/Take-Home_Ex03/the03.html" rel="" target="">
+ <span class="dropdown-text">Take home Exercise 3</span></a>
+  </li>  
     </ul>
   </li>
 </ul>
@@ -233,7 +245,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul>
   <li><a href="#data-preparation-and-wrangling" id="toc-data-preparation-and-wrangling" class="nav-link active" data-scroll-target="#data-preparation-and-wrangling">1.0 Data preparation and wrangling</a></li>
   <li><a href="#clustering-using-skater-method" id="toc-clustering-using-skater-method" class="nav-link" data-scroll-target="#clustering-using-skater-method">2.0 Clustering using SKATER method</a></li>
-  <li><a href="#storyboard-ui" id="toc-storyboard-ui" class="nav-link" data-scroll-target="#storyboard-ui">3.0 Storyboard UI</a></li>
+  <li><a href="#storyboard-ui" id="toc-storyboard-ui" class="nav-link" data-scroll-target="#storyboard-ui">3.0 Storyboard UI</a>
+  <ul class="collapse">
+  <li><a href="#introduction" id="toc-introduction" class="nav-link" data-scroll-target="#introduction">3.1 Introduction</a></li>
+  <li><a href="#purpose" id="toc-purpose" class="nav-link" data-scroll-target="#purpose">3.2 Purpose</a></li>
+  <li><a href="#user-interface" id="toc-user-interface" class="nav-link" data-scroll-target="#user-interface">User Interface</a></li>
+  <li><a href="#further-development" id="toc-further-development" class="nav-link" data-scroll-target="#further-development">3.3 Further development</a></li>
+  <li><a href="#features-to-consider" id="toc-features-to-consider" class="nav-link" data-scroll-target="#features-to-consider">3.4 Features to consider</a></li>
+  </ul></li>
   </ul>
 </nav>
     </div>
@@ -253,7 +272,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">March 15, 2024</p>
+      <p class="date">March 24, 2024</p>
     </div>
   </div>
   
@@ -611,6 +630,7 @@ B 63 3969 4049.519 158688.5 1235388</code></pre>
 <span id="cb37-4"><a href="#cb37-4" aria-hidden="true" tabindex="-1"></a>                 <span class="at">ncuts =</span> <span class="dv">5</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
+<p>::: call-out note We have 2 parameters that we could offer for the interactive view in shiny</p>
 <div class="cell">
 <details>
 <summary>Code</summary>
@@ -618,12 +638,12 @@ B 63 3969 4049.519 158688.5 1235388</code></pre>
 </details>
 <div class="cell-output cell-output-stdout">
 <pre><code>List of 8
- $ groups      : num [1:63] 1 1 2 2 1 2 1 1 3 3 ...
+ $ groups      : num [1:63] 6 6 2 2 6 2 6 6 3 3 ...
  $ edges.groups:List of 6
   ..$ :List of 3
-  .. ..$ node: num [1:34] 41 46 15 43 20 28 36 25 61 7 ...
-  .. ..$ edge: num [1:33, 1:3] 25 28 8 8 29 58 21 61 20 45 ...
-  .. ..$ ssw : num 343
+  .. ..$ node: num [1:14] 56 63 52 60 44 38 24 14 30 22 ...
+  .. ..$ edge: num [1:13, 1:3] 52 52 38 44 38 24 63 63 63 52 ...
+  .. ..$ ssw : num 91.5
   ..$ :List of 3
   .. ..$ node: num [1:11] 3 6 31 54 55 27 4 40 62 49 ...
   .. ..$ edge: num [1:10, 1:3] 54 3 3 3 6 54 55 3 55 31 ...
@@ -641,9 +661,9 @@ B 63 3969 4049.519 158688.5 1235388</code></pre>
   .. ..$ edge: num[0 , 1:3] 
   .. ..$ ssw : num 0
   ..$ :List of 3
-  .. ..$ node: num [1:14] 52 63 56 60 44 38 24 14 30 22 ...
-  .. ..$ edge: num [1:13, 1:3] 56 52 63 44 38 24 63 63 52 52 ...
-  .. ..$ ssw : num 91.5
+  .. ..$ node: num [1:34] 25 15 43 20 28 36 41 61 7 58 ...
+  .. ..$ edge: num [1:33, 1:3] 41 28 8 8 29 58 21 61 20 45 ...
+  .. ..$ ssw : num 343
  $ not.prune   : NULL
  $ candidates  : int [1:6] 1 2 3 4 5 6
  $ ssto        : num 672
@@ -660,8 +680,8 @@ B 63 3969 4049.519 158688.5 1235388</code></pre>
 <span id="cb40-2"><a href="#cb40-2" aria-hidden="true" tabindex="-1"></a>ccs6</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output cell-output-stdout">
-<pre><code> [1] 1 1 2 2 1 2 1 1 3 3 1 1 1 6 1 1 1 6 1 1 1 6 6 6 1 2 2 1 1 6 2 1 1 1 6 1 6 6
-[39] 4 2 1 5 1 6 1 1 1 1 2 1 1 6 1 2 2 6 1 1 1 6 1 2 6</code></pre>
+<pre><code> [1] 6 6 2 2 6 2 6 6 3 3 6 6 6 1 6 6 6 1 6 6 6 1 1 1 6 2 2 6 6 1 2 6 6 6 1 6 1 1
+[39] 4 2 6 5 6 1 6 6 6 6 2 6 6 1 6 2 2 1 6 6 6 1 6 2 1</code></pre>
 </div>
 </div>
 <div class="cell">
@@ -679,6 +699,7 @@ B 63 3969 4049.519 158688.5 1235388</code></pre>
 <p><img src="the03_files/figure-html/unnamed-chunk-34-1.png" class="img-fluid" width="1920"></p>
 </div>
 </div>
+<p>::: call-out note Since we are doing our individual module analysis, we need to prepare some data for the graph.</p>
 <div class="cell">
 <details>
 <summary>Code</summary>
@@ -704,6 +725,7 @@ B 63 3969 4049.519 158688.5 1235388</code></pre>
 <span id="cb46-2"><a href="#cb46-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rename</span>(<span class="st">`</span><span class="at">CLUSTER</span><span class="st">`</span><span class="ot">=</span><span class="st">`</span><span class="at">as.matrix.groups.</span><span class="st">`</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
+<p>::: call-out note Take note that the above 4 chunks of code might be duplicated in other modules.</p>
 <div class="cell">
 <details>
 <summary>Code</summary>
@@ -743,14 +765,44 @@ B 63 3969 4049.519 158688.5 1235388</code></pre>
 </section>
 <section id="storyboard-ui" class="level1">
 <h1>3.0 Storyboard UI</h1>
-<p>the 2 main sources that we will use to create the UI are the <code>shiny</code> and <code>shinydashboard</code> packages. The <code>shiny</code> package is used to create the UI and the <code>shinydashboard</code> package is used to create the dashboard layout.</p>
-<p>We can find information about shiny UI designing in the following link: https://shiny.rstudio.com/articles/layout-guide.html</p>
-<p>Additional resources: 1) https://shiny.posit.co/ 2) https://rstudio.github.io/cheatsheets/html/shiny.html?_gl=1<em>17a3ps8</em>_ga<em>MTAxMjM5NDEwMS4xNzA0NjM3NDA2</em>_ga_2C0WZ1JHG0*MTcxMDMxNzc1NS43LjEuMTcxMDMxNzg4OS4wLjAuMA.. 3) https://deanattali.com/blog/building-shiny-apps-tutorial/#11-using-uioutput-to-create-ui-elements-dynamically</p>
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">3.1 Introduction</h2>
+<p>The purpose of this dashboard is to provide a visual representation of the clustering of provinces in Vietnam based on the Provincial Competitiveness Index (PCI) data. The clustering is done using the SKATER method, which is a spatial clustering method that takes into account the spatial relationships between provinces.</p>
+</section>
+<section id="purpose" class="level2">
+<h2 class="anchored" data-anchor-id="purpose">3.2 Purpose</h2>
+<p>We strive to provide a user-friendly interface that allows users to interact with the data and explore the clusters in an intuitive way. The dashboard will include visualizations of the clusters on a map, as well as summary statistics of the clusters. Users will be able to change the number of clusters, the distance metric, and the agglomeration method used in the clustering process. This will aid the analysis of geographic segmentation of the provinces in Vietnam.</p>
+<p>Since we are targeting a non-technical audience, we aim to keep the dashboard simple and easy to use. The dashboard will be designed to be visually appealing and intuitive, with clear instructions on how to use it. However, jargon like “agglomeration” will be used to identify specific variable changes.</p>
+</section>
+<section id="user-interface" class="level2">
+<h2 class="anchored" data-anchor-id="user-interface">User Interface</h2>
 <p><img src="images/th3ui.jpg" class="img-fluid"></p>
-<p>As of now, there’ll be 3 parameters that the user can change: 1) The number of clusters 2) The distance metric 3) The agglomeration method. This is to give the user more control over the clustering process.</p>
-<p>Things that we could potentially look into: 1) Adding a map to the UI that shows the clusters 2) Adding a table that shows the provinces and their respective clusters 3) Allow users to change the level of clustering (i.e.&nbsp;from province to district level) 4) Allow users to change the variables that are used for clustering 5) Allow users to change the color of the clusters for better visuals</p>
+<p>As of now, there’ll be 3 parameters that the user can change:</p>
+<p>1) The number of clusters</p>
+<p>2) The distance metric</p>
+<p>3) The agglomeration method.</p>
+<p>This is to give the user more control over the clustering process.</p>
+</section>
+<section id="further-development" class="level2">
+<h2 class="anchored" data-anchor-id="further-development">3.3 Further development</h2>
+<p>The 2 main sources that we will use to create the UI are the <code>shiny</code> and <code>shinydashboard</code> packages. The <code>shiny</code> package is used to create the UI and the <code>shinydashboard</code> package is used to create the dashboard layout.</p>
+<p>We can find information about shiny UI designing in the following link: https://shiny.rstudio.com/articles/layout-guide.html</p>
+<p>Additional resources:</p>
+<p>1) https://shiny.posit.co/</p>
+<p>2) https://rstudio.github.io/cheatsheets/html/shiny.html?_gl=1<em>17a3ps8</em>_ga<em>MTAxMjM5NDEwMS4xNzA0NjM3NDA2</em>_ga_2C0WZ1JHG0*MTcxMDMxNzc1NS43LjEuMTcxMDMxNzg4OS4wLjAuMA..</p>
+<p>3) https://deanattali.com/blog/building-shiny-apps-tutorial/#11-using-uioutput-to-create-ui-elements-dynamically</p>
+</section>
+<section id="features-to-consider" class="level2">
+<h2 class="anchored" data-anchor-id="features-to-consider">3.4 Features to consider</h2>
+<p>Things that we could potentially look into:</p>
+<p>1) Adding a map to the UI that shows the clusters</p>
+<p>2) Adding a table that shows the provinces and their respective clusters</p>
+<p>3) Allow users to change the level of clustering (i.e.&nbsp;from province to district level)</p>
+<p>4) Allow users to change the variables that are used for clustering</p>
+<p>5) Allow users to change the color of the clusters for better visuals</p>
 
 
+</section>
 </section>
 
 </main> <!-- /main -->
